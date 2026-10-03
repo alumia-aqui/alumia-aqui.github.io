@@ -86,18 +86,41 @@ const formatarCnpj = (c) =>
   c && c.length === 14 ? `${c.slice(0, 2)}.${c.slice(2, 5)}.${c.slice(5, 8)}/${c.slice(8, 12)}-${c.slice(12)}` : c;
 const referenciaReceita = (r) => (r ? `${r.slice(5, 7)}/${r.slice(0, 4)}` : "");
 
-// Índice da página: só as seções que existem neste Retrato.
-const indice = [
-  { id: "quem-e", titulo: "Quem é" },
-  sancoes && { id: "sancoes", titulo: "Sanções registradas" },
-  empresas && { id: "empresas", titulo: "Empresas em que é sócio" },
-  parlamento && { id: "congresso", titulo: "O que fez no Congresso" },
-  bensAtuais && { id: "bens", titulo: "Bens declarados" },
-  { id: "eleicoes", titulo: "Eleições que disputou" },
-  { id: "falta", titulo: "O que ainda não está aqui" },
+const anteriores = [...new Set(pessoa.candidaturas.map((c) => c.ano))].sort((a, b) => b - a);
+
+// Abas do Retrato. Sanções e Empresas aparecem para todos, mesmo vazias.
+const abas = [
+  { id: "resumo", titulo: "Resumo" },
+  { id: "candidaturas", titulo: "Candidaturas" },
+  parlamento && { id: "mandatos", titulo: "Mandatos" },
+  sancoes && { id: "sancoes", titulo: "Sanções" },
+  empresas && { id: "empresas", titulo: "Empresas" },
 ].filter(Boolean);
 
-const anteriores = [...new Set(pessoa.candidaturas.map((c) => c.ano))].sort((a, b) => b - a);
+// Resumo: uma linha por área, no mesmo formato para todos os candidatos.
+const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+const totalSancoes = sancoes?.registros.length ?? 0;
+const totalEmpresas = empresas?.registros.length ?? 0;
+const empresasAtivas = empresas?.registros.filter((e) => e.situacao === "Ativa").length ?? 0;
+const resumo = [
+  { alvo: "eleicoes", rotulo: "Eleições disputadas", texto: `${plural(anteriores.length, "eleição", "eleições")} desde 2014` },
+  bensAtuais && {
+    alvo: "bens", rotulo: "Bens declarados",
+    texto: bensAtuais.total_bens > 0 ? `${reais(bensAtuais.total_bens)} em ${bensAtuais.ano}` : `Nenhum bem declarado em ${bensAtuais.ano}`,
+  },
+  parlamento && { alvo: "mandatos", rotulo: "Mandatos no Congresso", texto: `${plural(parlamento.mandatos.length, "mandato", "mandatos")} desde ${parlamento.desde}` },
+  sancoes && {
+    alvo: "sancoes", rotulo: "Sanções",
+    texto: totalSancoes ? `${plural(totalSancoes, "registrada", "registradas")} na CGU` : "Nenhuma encontrada na CGU",
+  },
+  empresas && {
+    alvo: "empresas", rotulo: "Empresas",
+    texto: totalEmpresas
+      ? `Participação em ${plural(totalEmpresas, "empresa", "empresas")}, ${plural(empresasAtivas, "ativa", "ativas")}`
+      : "Nenhuma encontrada na Receita Federal",
+  },
+].filter(Boolean);
+
 const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${ano}`;
 ---
 <Base
@@ -137,12 +160,21 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
       Não fazemos avaliação de candidatos.
     </p>
 
-    <nav class="indice" aria-labelledby="titulo-indice">
-      <p id="titulo-indice" class="indice-titulo">Nesta página</p>
-      <ol>
-        {indice.map((item) => <li><a href={`#${item.id}`}>{item.titulo}</a></li>)}
-      </ol>
+    <nav class="abas" id="abas" aria-label="Partes do Retrato">
+      {abas.map((aba) => <a href={`#${aba.id}`}>{aba.titulo}</a>)}
     </nav>
+
+    <div class="painel" id="resumo">
+      <ul class="resumo">
+        {resumo.map((linha) => (
+          <li>
+            <a href={`#${linha.alvo}`}>
+              <span class="resumo-rotulo">{linha.rotulo}</span>
+              <span class="resumo-texto">{linha.texto}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
 
     <section id="quem-e">
       <h2>Quem é</h2>
@@ -156,124 +188,99 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
       <p class="fonte">Fonte: <a href={fonteTse(recente.ano)}>TSE, candidatos de {recente.ano}</a>. Informações declaradas pelo próprio candidato.{foto && " A foto é a entregue ao TSE no registro da candidatura."}</p>
     </section>
 
-    {sancoes && (
-      <section id="sancoes">
-        <h2>Tem sanções registradas?</h2>
-        {sancoes.registros.length === 0 ? (
-          <p>
-            Nenhuma sanção encontrada nos cadastros da Controladoria-Geral da União (CEIS, CNEP e CEAF),
-            consultados em {dataBr(sancoes.consultado_em)}.
-          </p>
+    <section id="falta">
+      <h2>O que ainda não está aqui</h2>
+      <p>
+        Contas de campanha, processos criminais, votações no Congresso,
+        presença de senadores e de deputados em mandatos anteriores, mandatos anteriores a 2015
+        e mandatos em assembleias estaduais e câmaras municipais ainda
+        não foram incluídos no Alumia Aqui. A ausência dessas informações nesta página não
+        significa que elas não existam.
+      </p>
+    </section>
+    </div>
+
+    <div class="painel" id="candidaturas">
+    <section id="eleicoes">
+      <h2>Quais eleições já disputou?</h2>
+      <p class="explica">Todas as candidaturas registradas no TSE desde 2014, da mais recente para a mais antiga.</p>
+      <ol class="linha-do-tempo">
+        {pessoa.candidaturas.map((c) => (
+          <li>
+            <p class="ano">{c.ano}</p>
+            <div class="evento">
+              <h3>{primeiraMaiuscula(minusculo(c.cargo))} {localCandidatura(c)}</h3>
+              <p>
+                {c.partido?.sigla && <>Partido {c.partido.sigla}{c.partido.nome && ` (${nomeProprio(c.partido.nome)})`}</>}
+                {c.numero && <>, número {c.numero}</>}
+              </p>
+              {situacao(c.situacao_candidatura) && <p>{situacao(c.situacao_candidatura)}</p>}
+              {c.turnos.filter((t) => resultado(t.resultado)).map((t) => (
+                <p class="resultado">
+                  {c.turnos.length > 1 && `${t.turno}º turno: `}{resultado(t.resultado)}
+                </p>
+              ))}
+              {c.ano === atual && !c.turnos.some((t) => resultado(t.resultado)) && (
+                <p class="resultado">Eleição ainda não apurada</p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p class="fonte">
+        Fonte: TSE, dados abertos de candidatos ({anteriores.map((ano, i) => (
+          <>{i > 0 && ", "}<a href={fonteTse(ano)}>{ano}</a></>
+        ))}).
+      </p>
+    </section>
+
+    {bensAtuais && (
+      <section id="bens">
+        <h2>Quanto declarou de bens?</h2>
+        {bensAtuais.bens.length === 0 ? (
+          <p>Não declarou bens ao registrar a candidatura de {bensAtuais.ano}.</p>
         ) : (
           <>
-            <p>
-              <strong>{sancoes.registros.length}</strong>
-              {sancoes.registros.length === 1 ? " sanção registrada" : " sanções registradas"} nos cadastros da
-              Controladoria-Geral da União, consultados em {dataBr(sancoes.consultado_em)}.
+            <p class="total-bens">{reais(bensAtuais.total_bens)}</p>
+            <p class="explica">
+              Total declarado na candidatura de {bensAtuais.ano}, em {bensAtuais.bens.length}
+              {bensAtuais.bens.length === 1 ? " item" : " itens"}.
             </p>
-            <ol class="sancoes">
-              {sancoes.registros.map((s) => (
+            <ul class="bens">
+              {bensPorTipo(bensAtuais.bens).map((g) => (
                 <li>
-                  <p class="categoria">{s.categoria}</p>
-                  <p class="situacao-sancao">{s.vigente ? "Ativa no cadastro" : "Encerrada"}</p>
-                  {periodoSancao(s) && <p>{periodoSancao(s)}.</p>}
-                  {s.orgao && (
-                    <p>
-                      Aplicada por: {s.orgao}
-                      {s.uf_orgao && <> ({s.uf_orgao})</>}
-                      {s.esfera && <>, esfera {minusculo(s.esfera)}</>}.
-                    </p>
-                  )}
-                  {s.transito_julgado && <p>Decisão definitiva (trânsito em julgado) em {dataBr(s.transito_julgado)}.</p>}
-                  {s.fundamento && <p>Fundamento: {s.fundamento}.</p>}
-                  {s.processo && <p>Processo nº {s.processo}.</p>}
-                  {s.origem && <p>Informação enviada por: {s.origem}.</p>}
-                  <p class="fonte">
-                    Cadastro <a href={`https://portaldatransparencia.gov.br/sancoes/${s.cadastro.toLowerCase()}`}>{s.cadastro}</a>:
-                    {" "}{EXPLICA_CADASTRO[s.cadastro]}. Código da sanção: {s.codigo}.
-                  </p>
+                  <span>{g.tipo}{g.quantidade > 1 && ` (${g.quantidade})`}</span>
+                  <span class="valor">{reais(g.valor)}</span>
                 </li>
               ))}
-            </ol>
+            </ul>
           </>
         )}
-        <p class="explica nota">
-          Esses cadastros reúnem punições administrativas e condenações por improbidade. Não incluem processos
-          criminais nem ações em andamento. Uma sanção pode ter sido contestada ou revista depois do registro;
-          para detalhes, consulte o processo no órgão que a aplicou.
-        </p>
+        {evolucao.length > 1 && (
+          <>
+            <h3 class="sub">Total declarado em cada eleição</h3>
+            <ul class="evolucao">
+              {evolucao.map((e) => (
+                <li>
+                  <span class="ano-bens">{e.ano}</span>
+                  <span class="barra" style={`--tamanho: ${(e.total / maiorTotal) * 100}%`}></span>
+                  <span class="valor">{e.total > 0 ? reais(e.total) : "Nenhum bem"}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         <p class="fonte">
-          Fonte: <a href="https://portaldatransparencia.gov.br/sancoes">Portal da Transparência, Controladoria-Geral da União</a>.
-          A ligação é feita pelo CPF publicado pela CGU; no CEAF, que mostra só parte do CPF, também é exigido o nome completo idêntico.
+          Fonte: <a href={fonteTse(bensAtuais.ano)}>TSE, bens de candidatos</a>. Valores declarados pelo
+          próprio candidato ao registrar a candidatura, sem correção pela inflação.
         </p>
       </section>
     )}
 
-    {empresas && (
-      <section id="empresas">
-        <h2>Empresas em que é sócio</h2>
-        {empresas.registros.length === 0 ? (
-          <p>
-            Nenhuma empresa encontrada no cadastro de sócios da Receita Federal
-            (dados de {referenciaReceita(empresas.referencia)}).
-          </p>
-        ) : (
-          <>
-            <p>
-              Sócio em <strong>{empresas.registros.length}</strong>
-              {empresas.registros.length === 1 ? " empresa" : " empresas"}, segundo o cadastro da Receita Federal
-              (dados de {referenciaReceita(empresas.referencia)}).
-            </p>
-            <ol class="sancoes">
-              {empresas.registros.map((e) => (
-                <li>
-                  <p class="categoria">{e.razao_social ?? `CNPJ ${e.cnpj_basico}`}</p>
-                  {e.nome_fantasia && <p>Nome fantasia: {e.nome_fantasia}</p>}
-                  <p class="situacao-sancao">
-                    {e.situacao ? `Situação: ${e.situacao}` : "Situação não informada"}
-                    {e.situacao && e.situacao !== "Ativa" && e.data_situacao && <> desde {dataBr(e.data_situacao)}</>}
-                  </p>
-                  <p>
-                    {e.qualificacao}{e.entrada && <> desde {dataBr(e.entrada)}</>}.
-                  </p>
-                  {e.atividade && <p>Atividade principal: {e.atividade}.</p>}
-                  {e.municipio && <p>Sede: {nomeProprio(e.municipio)} ({e.uf}).</p>}
-                  {(e.porte || e.capital_social != null) && (
-                    <p>
-                      {e.porte && <>Porte: {minusculo(e.porte)}. </>}
-                      {e.capital_social != null && <>Capital social: {reais(e.capital_social)}.</>}
-                    </p>
-                  )}
-                  {e.natureza && <p>Tipo: {e.natureza}.</p>}
-                  {e.sancoes?.length > 0 && (
-                    <div class="alerta-empresa">
-                      <p><strong>Esta empresa tem {e.sancoes.length === 1 ? "sanção registrada" : `${e.sancoes.length} sanções registradas`} na CGU:</strong></p>
-                      {e.sancoes.map((s) => (
-                        <p>
-                          {s.categoria} ({s.cadastro}){periodoSancao(s) && <>, {periodoSancao(s).charAt(0).toLowerCase() + periodoSancao(s).slice(1)}</>}
-                          {s.orgao && <>, aplicada por {s.orgao}</>}. Código {s.codigo}.
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                  <p class="fonte">CNPJ {formatarCnpj(e.cnpj) ?? e.cnpj_basico}</p>
-                </li>
-              ))}
-            </ol>
-          </>
-        )}
-        <p class="explica nota">
-          Ser sócio de uma empresa não indica irregularidade. A Receita Federal mostra só seis dígitos do CPF
-          dos sócios; a ligação exige esses dígitos e o nome completo idênticos aos registrados no TSE.
-        </p>
-        <p class="fonte">
-          Fonte: <a href="https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cadastros/consultas/dados-publicos-cnpj">Receita Federal, dados abertos do CNPJ</a>.
-          Sanções de empresas: <a href="https://portaldatransparencia.gov.br/sancoes">CEIS e CNEP, Controladoria-Geral da União</a>.
-        </p>
-      </section>
-    )}
+    </div>
 
     {parlamento && (
+      <div class="painel" id="mandatos">
       <section id="congresso">
         <h2>O que fez no Congresso?</h2>
         <p class="explica">Mandatos na Câmara dos Deputados e no Senado Federal desde {parlamento.desde}.</p>
@@ -436,96 +443,159 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
           ))}.
         </p>
       </section>
+      </div>
     )}
 
-    {bensAtuais && (
-      <section id="bens">
-        <h2>Quanto declarou de bens?</h2>
-        {bensAtuais.bens.length === 0 ? (
-          <p>Não declarou bens ao registrar a candidatura de {bensAtuais.ano}.</p>
+    {sancoes && (
+      <div class="painel" id="sancoes">
+      <section>
+        <h2>Tem sanções registradas?</h2>
+        {sancoes.registros.length === 0 ? (
+          <p>
+            Nenhuma sanção encontrada nos cadastros da Controladoria-Geral da União (CEIS, CNEP e CEAF),
+            consultados em {dataBr(sancoes.consultado_em)}.
+          </p>
         ) : (
           <>
-            <p class="total-bens">{reais(bensAtuais.total_bens)}</p>
-            <p class="explica">
-              Total declarado na candidatura de {bensAtuais.ano}, em {bensAtuais.bens.length}
-              {bensAtuais.bens.length === 1 ? " item" : " itens"}.
+            <p>
+              <strong>{sancoes.registros.length}</strong>
+              {sancoes.registros.length === 1 ? " sanção registrada" : " sanções registradas"} nos cadastros da
+              Controladoria-Geral da União, consultados em {dataBr(sancoes.consultado_em)}.
             </p>
-            <ul class="bens">
-              {bensPorTipo(bensAtuais.bens).map((g) => (
+            <ol class="sancoes">
+              {sancoes.registros.map((s) => (
                 <li>
-                  <span>{g.tipo}{g.quantidade > 1 && ` (${g.quantidade})`}</span>
-                  <span class="valor">{reais(g.valor)}</span>
+                  <p class="categoria">{s.categoria}</p>
+                  <p class="situacao-sancao">{s.vigente ? "Ativa no cadastro" : "Encerrada"}</p>
+                  {periodoSancao(s) && <p>{periodoSancao(s)}.</p>}
+                  {s.orgao && (
+                    <p>
+                      Aplicada por: {s.orgao}
+                      {s.uf_orgao && <> ({s.uf_orgao})</>}
+                      {s.esfera && <>, esfera {minusculo(s.esfera)}</>}.
+                    </p>
+                  )}
+                  {s.transito_julgado && <p>Decisão definitiva (trânsito em julgado) em {dataBr(s.transito_julgado)}.</p>}
+                  {s.fundamento && <p>Fundamento: {s.fundamento}.</p>}
+                  {s.processo && <p>Processo nº {s.processo}.</p>}
+                  {s.origem && <p>Informação enviada por: {s.origem}.</p>}
+                  <p class="fonte">
+                    Cadastro <a href={`https://portaldatransparencia.gov.br/sancoes/${s.cadastro.toLowerCase()}`}>{s.cadastro}</a>:
+                    {" "}{EXPLICA_CADASTRO[s.cadastro]}. Código da sanção: {s.codigo}.
+                  </p>
                 </li>
               ))}
-            </ul>
+            </ol>
           </>
         )}
-        {evolucao.length > 1 && (
-          <>
-            <h3 class="sub">Total declarado em cada eleição</h3>
-            <ul class="evolucao">
-              {evolucao.map((e) => (
-                <li>
-                  <span class="ano-bens">{e.ano}</span>
-                  <span class="barra" style={`--tamanho: ${(e.total / maiorTotal) * 100}%`}></span>
-                  <span class="valor">{e.total > 0 ? reais(e.total) : "Nenhum bem"}</span>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
+        <p class="explica nota">
+          Esses cadastros reúnem punições administrativas e condenações por improbidade. Não incluem processos
+          criminais nem ações em andamento. Uma sanção pode ter sido contestada ou revista depois do registro;
+          para detalhes, consulte o processo no órgão que a aplicou.
+        </p>
         <p class="fonte">
-          Fonte: <a href={fonteTse(bensAtuais.ano)}>TSE, bens de candidatos</a>. Valores declarados pelo
-          próprio candidato ao registrar a candidatura, sem correção pela inflação.
+          Fonte: <a href="https://portaldatransparencia.gov.br/sancoes">Portal da Transparência, Controladoria-Geral da União</a>.
+          A ligação é feita pelo CPF publicado pela CGU; no CEAF, que mostra só parte do CPF, também é exigido o nome completo idêntico.
         </p>
       </section>
+      </div>
     )}
 
-    <section id="eleicoes">
-      <h2>Quais eleições já disputou?</h2>
-      <p class="explica">Todas as candidaturas registradas no TSE desde 2014, da mais recente para a mais antiga.</p>
-      <ol class="linha-do-tempo">
-        {pessoa.candidaturas.map((c) => (
-          <li>
-            <p class="ano">{c.ano}</p>
-            <div class="evento">
-              <h3>{primeiraMaiuscula(minusculo(c.cargo))} {localCandidatura(c)}</h3>
-              <p>
-                {c.partido?.sigla && <>Partido {c.partido.sigla}{c.partido.nome && ` (${nomeProprio(c.partido.nome)})`}</>}
-                {c.numero && <>, número {c.numero}</>}
-              </p>
-              {situacao(c.situacao_candidatura) && <p>{situacao(c.situacao_candidatura)}</p>}
-              {c.turnos.filter((t) => resultado(t.resultado)).map((t) => (
-                <p class="resultado">
-                  {c.turnos.length > 1 && `${t.turno}º turno: `}{resultado(t.resultado)}
-                </p>
+    {empresas && (
+      <div class="painel" id="empresas">
+      <section>
+        <h2>Empresas em que é sócio</h2>
+        {empresas.registros.length === 0 ? (
+          <p>
+            Nenhuma empresa encontrada no cadastro de sócios da Receita Federal
+            (dados de {referenciaReceita(empresas.referencia)}).
+          </p>
+        ) : (
+          <>
+            <p>
+              Sócio em <strong>{empresas.registros.length}</strong>
+              {empresas.registros.length === 1 ? " empresa" : " empresas"}, segundo o cadastro da Receita Federal
+              (dados de {referenciaReceita(empresas.referencia)}).
+            </p>
+            <ol class="sancoes">
+              {empresas.registros.map((e) => (
+                <li>
+                  <p class="categoria">{e.razao_social ?? `CNPJ ${e.cnpj_basico}`}</p>
+                  {e.nome_fantasia && <p>Nome fantasia: {e.nome_fantasia}</p>}
+                  <p class="situacao-sancao">
+                    {e.situacao ? `Situação: ${e.situacao}` : "Situação não informada"}
+                    {e.situacao && e.situacao !== "Ativa" && e.data_situacao && <> desde {dataBr(e.data_situacao)}</>}
+                  </p>
+                  <p>
+                    {e.qualificacao}{e.entrada && <> desde {dataBr(e.entrada)}</>}.
+                  </p>
+                  {e.atividade && <p>Atividade principal: {e.atividade}.</p>}
+                  {e.municipio && <p>Sede: {nomeProprio(e.municipio)} ({e.uf}).</p>}
+                  {(e.porte || e.capital_social != null) && (
+                    <p>
+                      {e.porte && <>Porte: {minusculo(e.porte)}. </>}
+                      {e.capital_social != null && <>Capital social: {reais(e.capital_social)}.</>}
+                    </p>
+                  )}
+                  {e.natureza && <p>Tipo: {e.natureza}.</p>}
+                  {e.sancoes?.length > 0 && (
+                    <div class="alerta-empresa">
+                      <p><strong>Esta empresa tem {e.sancoes.length === 1 ? "sanção registrada" : `${e.sancoes.length} sanções registradas`} na CGU:</strong></p>
+                      {e.sancoes.map((s) => (
+                        <p>
+                          {s.categoria} ({s.cadastro}){periodoSancao(s) && <>, {periodoSancao(s).charAt(0).toLowerCase() + periodoSancao(s).slice(1)}</>}
+                          {s.orgao && <>, aplicada por {s.orgao}</>}. Código {s.codigo}.
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  <p class="fonte">CNPJ {formatarCnpj(e.cnpj) ?? e.cnpj_basico}</p>
+                </li>
               ))}
-              {c.ano === atual && !c.turnos.some((t) => resultado(t.resultado)) && (
-                <p class="resultado">Eleição ainda não apurada</p>
-              )}
-            </div>
-          </li>
-        ))}
-      </ol>
-      <p class="fonte">
-        Fonte: TSE, dados abertos de candidatos ({anteriores.map((ano, i) => (
-          <>{i > 0 && ", "}<a href={fonteTse(ano)}>{ano}</a></>
-        ))}).
-      </p>
-    </section>
+            </ol>
+          </>
+        )}
+        <p class="explica nota">
+          Ser sócio de uma empresa não indica irregularidade. A Receita Federal mostra só seis dígitos do CPF
+          dos sócios; a ligação exige esses dígitos e o nome completo idênticos aos registrados no TSE.
+        </p>
+        <p class="fonte">
+          Fonte: <a href="https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cadastros/consultas/dados-publicos-cnpj">Receita Federal, dados abertos do CNPJ</a>.
+          Sanções de empresas: <a href="https://portaldatransparencia.gov.br/sancoes">CEIS e CNEP, Controladoria-Geral da União</a>.
+        </p>
+      </section>
+      </div>
+    )}
 
-    <section id="falta">
-      <h2>O que ainda não está aqui</h2>
-      <p>
-        Contas de campanha, processos criminais, votações no Congresso,
-        presença de senadores e de deputados em mandatos anteriores, mandatos anteriores a 2015
-        e mandatos em assembleias estaduais e câmaras municipais ainda
-        não foram incluídos no Alumia Aqui. A ausência dessas informações nesta página não
-        significa que elas não existam.
-      </p>
-    </section>
   </article>
 </Base>
+
+<script is:inline>
+  // Abas: mostra um painel por vez. O endereço (#sancoes, #bens...) diz qual.
+  (function () {
+    var paineis = Array.prototype.slice.call(document.querySelectorAll(".painel"));
+    var links = Array.prototype.slice.call(document.querySelectorAll(".abas a"));
+    var nav = document.getElementById("abas");
+    if (!paineis.length || !nav) return;
+    function mostrar(rolar) {
+      var id = decodeURIComponent(location.hash.slice(1));
+      var alvo = id && document.getElementById(id);
+      var painel = alvo && (alvo.classList.contains("painel") ? alvo : alvo.closest(".painel"));
+      var ativo = painel || paineis[0];
+      paineis.forEach(function (p) { p.hidden = p !== ativo; });
+      links.forEach(function (a) {
+        if (a.hash === "#" + ativo.id) a.setAttribute("aria-current", "page");
+        else a.removeAttribute("aria-current");
+      });
+      if (!rolar) return;
+      if (alvo && alvo !== ativo) alvo.scrollIntoView();
+      else if (alvo) nav.scrollIntoView();
+    }
+    document.documentElement.classList.add("com-abas");
+    mostrar(Boolean(location.hash));
+    window.addEventListener("hashchange", function () { mostrar(true); });
+  })();
+</script>
 
 <style>
   .retrato { padding-top: 1.75rem; padding-bottom: 2.5rem; }
@@ -597,6 +667,32 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
   .categoria { font-weight: 700; font-size: 1.05rem; }
   .situacao-sancao { font-weight: 700; color: var(--tinta-suave); }
   .presencas { list-style: none; margin: 0; padding: 0; }
+
+  .abas {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    margin-top: 1.5rem; padding-top: 0.5rem; scroll-margin-top: 0.5rem;
+  }
+  .abas a {
+    padding: 0.55rem 1rem; border-radius: 999px;
+    border: 2px solid var(--noite); font-weight: 700; text-decoration: none;
+  }
+  .abas a[aria-current="page"] { background: var(--noite); color: var(--luz); }
+  .abas a:hover { background: rgb(255 226 122 / 0.45); }
+  .abas a[aria-current="page"]:hover { background: var(--noite-clara); }
+
+  .resumo { list-style: none; margin: 1.25rem 0 0; padding: 0; }
+  .resumo li + li { margin-top: 0.6rem; }
+  .resumo a {
+    display: flex; flex-direction: column; gap: 0.15rem;
+    padding: 0.85rem 1rem; border: 2px solid var(--borda); border-radius: var(--raio);
+    text-decoration: none;
+  }
+  .resumo a:hover { border-color: var(--noite); background: rgb(255 226 122 / 0.25); }
+  .resumo-rotulo { font-weight: 700; }
+  .resumo-texto { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+
+  /* Sem JavaScript, todos os painéis aparecem empilhados. */
+  .painel[hidden] { display: none; }
   .alerta-empresa {
     margin-top: 0.6rem; padding: 0.6rem 0.8rem;
     background: var(--luz); border-radius: 10px;
@@ -604,14 +700,6 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
   .alerta-empresa p + p { margin-top: 0.25rem; }
   section { scroll-margin-top: 1rem; }
 
-  .indice {
-    margin-top: 1.5rem; padding: 1rem 1.1rem;
-    border: 2px solid var(--borda); border-radius: var(--raio);
-  }
-  .indice-titulo { font-weight: 700; margin-bottom: 0.35rem; }
-  .indice ol { margin: 0; padding-left: 1.4rem; }
-  .indice li { padding: 0.2rem 0; }
-  .indice a { display: inline-block; padding: 0.15rem 0; }
   .presencas li { padding: 0.6rem 0; border-bottom: 2px solid var(--borda); }
   .presencas p + p { margin-top: 0.25rem; }
 

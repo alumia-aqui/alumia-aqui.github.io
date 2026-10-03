@@ -17,6 +17,8 @@ const {
   imagem,
 } = Astro.props;
 
+const emComoFunciona = Astro.url.pathname.endsWith("/como-funciona/");
+
 // Data da geração do site, no horário de Brasília.
 const atualizado = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric",
@@ -52,7 +54,10 @@ const atualizado = new Intl.DateTimeFormat("pt-BR", {
           <Lanterna tamanho={30} />
           <span>Alumia Aqui</span>
         </a>
-        <a class="nova-busca" href={caminho()}>Nova busca</a>
+        <nav class="menu" aria-label="Menu principal">
+          <a href={caminho()}>Buscar</a>
+          <a href={caminho("como-funciona/")} aria-current={emComoFunciona ? "page" : undefined}>Como funciona</a>
+        </nav>
       </header>
     )}
     <main id="conteudo">
@@ -122,9 +127,24 @@ const atualizado = new Intl.DateTimeFormat("pt-BR", {
   .topo :focus-visible { outline-color: var(--luz); }
   .marca {
     display: inline-flex; align-items: center; gap: 0.5rem;
-    font-weight: 700; font-size: 1.1rem; text-decoration: none;
+    font-weight: 700; font-size: 1.1rem; text-decoration: none; white-space: nowrap;
   }
   .marca svg { color: var(--papel); }
+  .menu { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+  .menu a {
+    text-decoration: none; font-weight: 700; font-size: 0.95rem;
+    padding: 0.45rem 0.8rem; border-radius: 999px;
+    border: 2px solid var(--noite-clara);
+  }
+  .menu a:hover { border-color: var(--luz); }
+  .menu a[aria-current="page"] { background: var(--luz); color: var(--noite); border-color: var(--luz); }
+  .topo { gap: 0.5rem; }
+  .menu a { white-space: nowrap; }
+  @media (max-width: 30rem) {
+    .topo { flex-wrap: wrap; padding: 0.6rem 0.75rem 0.7rem; }
+    .menu { width: 100%; justify-content: flex-start; }
+    .menu a { padding: 0.35rem 0.8rem; font-size: 0.9rem; }
+  }
 
   .rodape {
     border-top: 2px solid var(--borda);
