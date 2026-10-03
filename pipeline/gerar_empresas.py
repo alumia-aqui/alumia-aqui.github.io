@@ -18,12 +18,14 @@ Uso:  python pipeline/gerar_empresas.py
 Tamanho: os arquivos da Receita somam alguns GB por mês. Só o mês atual fica guardado.
 """
 
+import base64
 import csv
 import io
 import json
 import re
 import shutil
 import sys
+import time
 import unicodedata
 import urllib.request
 import zipfile
@@ -33,6 +35,11 @@ from pathlib import Path
 import tse
 from gerar_pessoas import carregar_chave, codigo_pessoa
 
+# Desde 2025 a Receita publica os arquivos num compartilhamento público (Nextcloud).
+# O código do compartilhamento é um link público, não uma credencial.
+WEBDAV = "https://arquivos.receitafederal.gov.br/public.php/webdav/"
+COMPARTILHAMENTO = "YggdBLfdninEJX9"
+# Endereços antigos, tentados se o compartilhamento falhar.
 BASES = [
     "https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/",
     "https://dadosabertos.rfb.gov.br/CNPJ/dados_abertos_cnpj/",
@@ -51,14 +58,40 @@ def normalizar(texto: str | None) -> str:
     return " ".join(re.sub(r"[^A-Za-z ]", " ", texto).upper().split())
 
 
-def pagina(url: str) -> str:
-    pedido = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (alumia-aqui; dados abertos)"})
+def cabecalhos(url: str) -> dict:
+    h = {"User-Agent": "Mozilla/5.0 (alumia-aqui; dados abertos)"}
+    if url.startswith(WEBDAV):
+        h["Authorization"] = "Basic " + base64.b64encode(f"{COMPARTILHAMENTO}:".encode()).decode()
+    return h
+
+
+def pagina(url: str, metodo: str = "GET") -> str:
+    h = cabecalhos(url)
+    if metodo == "PROPFIND":
+        h["Depth"] = "1"
+    pedido = urllib.request.Request(url, headers=h, method=metodo)
     with urllib.request.urlopen(pedido, timeout=120) as resposta:
         return resposta.read().decode("utf-8", "replace")
 
 
+def listar_webdav(url: str) -> list[str]:
+    """Nomes dos itens de uma pasta do compartilhamento (sem a própria pasta)."""
+    resposta = pagina(url, "PROPFIND")
+    caminhos = [urllib.request.unquote(h) for h in re.findall(r"<d:href>([^<]+)</d:href>", resposta)]
+    nomes = [c.rstrip("/").rsplit("/", 1)[-1] for c in caminhos]
+    atual = url.rstrip("/").rsplit("/", 1)[-1]
+    return [n for n in nomes if n and n != atual and n != "webdav"]
+
+
 def localizar_mes() -> tuple[str, str, list[str]]:
     """Endereço da pasta do mês mais recente e os arquivos .zip dela."""
+    try:
+        meses = sorted(n for n in listar_webdav(WEBDAV) if re.fullmatch(r"\d{4}-\d{2}", n))
+        if meses:
+            pasta = f"{WEBDAV}{meses[-1]}/"
+            return meses[-1], pasta, sorted(n for n in listar_webdav(pasta) if n.lower().endswith(".zip"))
+    except Exception as erro:
+        print(f"  {WEBDAV}: {erro}")
     for base in BASES:
         try:
             meses = sorted(set(re.findall(r'href="(\d{4}-\d{2})/?"', pagina(base))))
@@ -75,11 +108,31 @@ def localizar_mes() -> tuple[str, str, list[str]]:
     )
 
 
-def baixar(url: str, destino: Path) -> Path:
+def baixar(url: str, destino: Path, tentativas: int = 4) -> Path:
+    """Baixa com progresso; o arquivo só fica com o nome final se o download terminou."""
     if destino.exists():
         return destino
     destino.parent.mkdir(parents=True, exist_ok=True)
-    return tse.baixar_url(url, destino)
+    temporario = destino.with_suffix(".parcial")
+    for tentativa in range(tentativas):
+        try:
+            print(f"Baixando {destino.name}")
+            pedido = urllib.request.Request(url, headers=cabecalhos(url))
+            with urllib.request.urlopen(pedido, timeout=300) as resposta, open(temporario, "wb") as arquivo:
+                total = int(resposta.headers.get("Content-Length", 0))
+                baixado = 0
+                while bloco := resposta.read(4 * 1024 * 1024):
+                    arquivo.write(bloco)
+                    baixado += len(bloco)
+                    if total:
+                        print(f"\r  {baixado / total:.0%} de {total / 1e6:.0f} MB", end="")
+            print()
+            temporario.replace(destino)
+            return destino
+        except Exception as erro:
+            print(f"\n  falhou ({erro}); tentando de novo")
+            time.sleep(10 * (tentativa + 1))
+    raise RuntimeError(f"Não foi possível baixar {url}")
 
 
 def linhas(caminho: Path):
@@ -100,9 +153,11 @@ def main() -> None:
     chave = carregar_chave()
 
     # Candidatos da eleição atual: (6 dígitos do meio do CPF, nome) -> código da pessoa.
-    anos = sorted(int(m.group(1)) for f in tse.PASTA_DADOS.glob("consulta_cand_*.zip")
-                  if (m := re.search(r"_(\d{4})\.zip$", f.name)))
-    ano = anos[-1] if anos else date.today().year
+    # Ano da eleição atual: o dos Retratos gerados; sem eles, o ano par mais recente.
+    retratos = list((Path(__file__).parent / "saida" / "pessoas").glob("*.json"))[:50]
+    anos = [c["ano"] for f in retratos for c in json.loads(f.read_text(encoding="utf-8"))["candidaturas"]]
+    hoje = date.today().year
+    ano = max(anos) if anos else (hoje if hoje % 2 == 0 else hoje - 1)
     candidatos: dict[tuple[str, str], str] = {}
     for linha in tse.ler_candidatos(ano):
         cpf = tse.limpar(linha.get("NR_CPF_CANDIDATO"))
