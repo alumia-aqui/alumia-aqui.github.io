@@ -5,6 +5,7 @@ import { caminho } from "../../lib/caminho.js";
 import {
   nomeProprio, minusculo, primeiraMaiuscula, localCandidatura,
   resultado, situacao, idade, nomeExibido, nomeUf, reais, bensPorTipo,
+  dataBr, categoriaCota, participacaoSenado,
 } from "../../lib/texto.js";
 
 export function getStaticPaths() {
@@ -50,6 +51,15 @@ const evolucao = [...porAno.values()]
   .sort((a, b) => b.ano - a.ano);
 const bensAtuais = evolucao.length ? porAno.get(evolucao[0].ano) : undefined;
 const maiorTotal = Math.max(1, ...evolucao.map((e) => e.total));
+
+// Mandatos no Congresso (gerar_parlamento.py).
+const parlamento = pessoa.parlamento;
+const cota = parlamento?.cota ?? [];
+const variasCasas = new Set(cota.map((c) => c.casa)).size > 1;
+const maiorCota = Math.max(1, ...cota.map((c) => c.total));
+// Categorias: o ano completo mais recente; se só houver o ano atual, ele mesmo.
+const anoHoje = new Date().getFullYear();
+const cotaReferencia = cota.find((c) => c.ano < anoHoje) ?? cota[0];
 
 const anteriores = [...new Set(pessoa.candidaturas.map((c) => c.ano))].sort((a, b) => b - a);
 const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${ano}`;
@@ -102,6 +112,98 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
       </dl>
       <p class="fonte">Fonte: <a href={fonteTse(recente.ano)}>TSE, candidatos de {recente.ano}</a>. Informações declaradas pelo próprio candidato.{foto && " A foto é a entregue ao TSE no registro da candidatura."}</p>
     </section>
+
+    {parlamento && (
+      <section>
+        <h2>O que fez no Congresso?</h2>
+        <p class="explica">Mandatos na Câmara dos Deputados e no Senado Federal desde {parlamento.desde}.</p>
+        <ul class="mandatos">
+          {parlamento.mandatos.map((m) => (
+            <li>
+              <strong>{m.casa}</strong>, representando {nomeUf(m.uf)}, de {m.inicio} a {m.fim}
+              {m.partido && <> (partido {m.partido})</>}
+              {m.participacao && <>, {participacaoSenado(m.participacao)}</>}
+            </li>
+          ))}
+        </ul>
+
+        <h3 class="sub">Projetos que apresentou</h3>
+        {parlamento.proposicoes.autor + parlamento.proposicoes.coautor === 0 ? (
+          <p>Nenhum projeto de lei, PEC ou projeto de decreto legislativo apresentado desde {parlamento.desde}.</p>
+        ) : (
+          <>
+            <p>
+              <strong>{parlamento.proposicoes.autor}</strong>
+              {parlamento.proposicoes.autor === 1 ? " projeto" : " projetos"} com autoria principal desde {parlamento.desde}
+              {parlamento.proposicoes.coautor > 0 && <>, e {parlamento.proposicoes.coautor} em coautoria</>}.
+            </p>
+            {parlamento.proposicoes.por_tipo.length > 1 && (
+              <ul class="bens">
+                {parlamento.proposicoes.por_tipo.map((t) => (
+                  <li><span>{t.nome} ({t.tipo})</span><span class="valor">{t.quantidade}</span></li>
+                ))}
+              </ul>
+            )}
+            <p class="explica nota">
+              Apresentar um projeto não quer dizer que ele virou lei. A situação mostra em que etapa cada um está.
+            </p>
+            {parlamento.proposicoes.recentes.length > 0 && (
+              <>
+                <h4>Mais recentes com autoria principal</h4>
+                <ol class="projetos">
+                  {parlamento.proposicoes.recentes.map((p) => (
+                    <li>
+                      <p><a href={p.url}>{p.identificacao}</a>, apresentado em {dataBr(p.data)}</p>
+                      <p class="ementa">{p.ementa}</p>
+                      {p.situacao && <p class="situacao-projeto">Situação: {primeiraMaiuscula(minusculo(p.situacao))}</p>}
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </>
+        )}
+
+        {cota.length > 0 && (
+          <>
+            <h3 class="sub">Gastos com a cota parlamentar</h3>
+            <p class="explica">
+              A cota parlamentar é uma verba para despesas do mandato, como passagens, escritório e divulgação.
+              O valor máximo por mês muda conforme o estado.
+            </p>
+            <ul class="evolucao">
+              {cota.map((c) => (
+                <li>
+                  <span class="ano-bens">{c.ano}</span>
+                  <span class="barra" style={`--tamanho: ${(c.total / maiorCota) * 100}%`}></span>
+                  <span class="valor">
+                    {reais(c.total)}{c.ano === anoHoje && " até agora"}
+                    {variasCasas && <span class="casa"> ({c.casa})</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {cotaReferencia && (
+              <>
+                <h4>Em que gastou em {cotaReferencia.ano}</h4>
+                <ul class="bens">
+                  {cotaReferencia.categorias.slice(0, 8).map((g) => (
+                    <li><span>{categoriaCota(g.nome)}</span><span class="valor">{reais(g.valor)}</span></li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </>
+        )}
+
+        <p class="fonte">
+          Fonte: dados abertos da Câmara dos Deputados e do Senado Federal. Perfil oficial:{" "}
+          {parlamento.perfis.map((perfil, i) => (
+            <>{i > 0 && ", "}<a href={perfil.url}>{perfil.casa}</a></>
+          ))}.
+        </p>
+      </section>
+    )}
 
     {bensAtuais && (
       <section>
@@ -182,7 +284,8 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
     <section>
       <h2>O que ainda não está aqui</h2>
       <p>
-        Contas de campanha, mandatos exercidos, processos e sanções ainda
+        Contas de campanha, votações e presença no Congresso, mandatos anteriores a 2015,
+        mandatos em assembleias estaduais e câmaras municipais, processos e sanções ainda
         não foram incluídos no Alumia Aqui. A ausência dessas informações nesta página não
         significa que elas não existam.
       </p>
@@ -244,6 +347,16 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
   }
   h3 { font-size: 1.1rem; }
   .sub { margin: 1.5rem 0 0.5rem; }
+  h4 { font-size: 1rem; margin: 1.25rem 0 0.5rem; }
+  .nota { margin-top: 0.75rem; }
+  .mandatos { margin: 0; padding-left: 1.25rem; }
+  .mandatos li { margin-top: 0.35rem; }
+  .projetos { list-style: none; margin: 0; padding: 0; }
+  .projetos li { padding: 0.75rem 0; border-bottom: 2px solid var(--borda); }
+  .projetos a { font-weight: 700; }
+  .ementa { margin-top: 0.25rem; }
+  .situacao-projeto { color: var(--tinta-suave); font-size: 0.95rem; margin-top: 0.25rem; }
+  .casa { font-weight: 400; color: var(--tinta-suave); }
 
   .total-bens { font-size: clamp(1.8rem, 6vw, 2.4rem); font-weight: 700; line-height: 1.1; }
   .total-bens + .explica { margin-top: 0.25rem; }

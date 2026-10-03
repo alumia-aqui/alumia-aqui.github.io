@@ -107,3 +107,24 @@ export function bensPorTipo(bens) {
   }
   return [...somas.values()].sort((a, b) => b.valor - a.valor);
 }
+
+// "2025-03-01" -> "01/03/2025"
+export function dataBr(iso) {
+  if (!iso) return "";
+  const [ano, mes, dia] = iso.slice(0, 10).split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+// Nomes de categoria da cota: Câmara em maiúsculas, Senado em frases longas.
+export function categoriaCota(nome) {
+  let texto = primeiraMaiuscula(minusculo(nome || "Outros")).replace(/\.$/, "");
+  const corte = texto.search(/, (compreendendo|incluindo|exceto|com |de |para )/);
+  if (texto.length > 70 && corte > 20) texto = texto.slice(0, corte);
+  // Siglas que a conversão para minúsculas estraga.
+  return texto.replace(/\b(sigepa|rpa)\b/g, (sigla) => sigla.toUpperCase());
+}
+
+export function participacaoSenado(texto) {
+  if (!texto) return "";
+  return `como ${minusculo(texto)}`;
+}
