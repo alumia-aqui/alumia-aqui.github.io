@@ -1,0 +1,50 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base titulo="Como funciona o Alumia Aqui">
+  <article class="conteudo texto">
+    <h1>Como funciona</h1>
+
+    <p>
+      O Alumia Aqui reúne, em uma página por candidato, informações públicas que hoje
+      estão espalhadas em vários sites oficiais. Cada página se chama Retrato.
+    </p>
+
+    <h2>De onde vêm os dados</h2>
+    <p>
+      Por enquanto, de uma única fonte: os dados abertos do Tribunal Superior Eleitoral (TSE),
+      que publica as candidaturas de cada eleição. Cada informação no Retrato tem o link da
+      fonte, para qualquer pessoa conferir.
+    </p>
+
+    <h2>As regras que seguimos</h2>
+    <ul>
+      <li>O mesmo Retrato para todos os candidatos, de qualquer partido: mesmas seções, mesma ordem, mesmas fontes.</li>
+      <li>Não damos nota, ranking ou selo a ninguém. Mostramos os fatos; quem avalia é você.</li>
+      <li>Só entra no Retrato o que estiver ligado com segurança à pessoa certa. Nomes parecidos não bastam.</li>
+      <li>Quando houver processos, mostraremos a fase exata (investigado, réu, condenado, absolvido), sem adjetivos.</li>
+    </ul>
+
+    <h2>Como sabemos que é a pessoa certa</h2>
+    <p>
+      As candidaturas de eleições diferentes são ligadas pelo CPF, que o TSE publica nos
+      dados abertos. Nas eleições em que o CPF não foi publicado, a ligação usa o título
+      de eleitor junto com a data de nascimento. O CPF e o título nunca aparecem no site.
+    </p>
+
+    <h2>O que ainda vem por aí</h2>
+    <p>
+      Bens declarados, contas de campanha, mandatos exercidos, processos e sanções. Enquanto
+      não forem incluídos, a ausência dessas informações não significa que elas não existam.
+    </p>
+  </article>
+</Base>
+
+<style>
+  .texto { padding-top: 1.75rem; padding-bottom: 2.5rem; }
+  h1 { font-size: clamp(2rem, 7vw, 2.6rem); }
+  h2 { font-size: 1.35rem; margin: 2rem 0 0.5rem; }
+  p { margin-top: 0.75rem; }
+  ul { padding-left: 1.25rem; }
+  li { margin-top: 0.5rem; }
+</style>

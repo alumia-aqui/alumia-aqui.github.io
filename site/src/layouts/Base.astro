@@ -1,0 +1,124 @@
+---
+import "@fontsource/atkinson-hyperlegible-next/latin-400.css";
+import "@fontsource/atkinson-hyperlegible-next/latin-700.css";
+import Lanterna from "../components/Lanterna.astro";
+
+interface Props {
+  titulo: string;
+  descricao?: string;
+  inicio?: boolean;
+}
+const {
+  titulo,
+  descricao = "Dados públicos e oficiais sobre candidatos, com o link de cada fonte.",
+  inicio = false,
+} = Astro.props;
+---
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{titulo}</title>
+    <meta name="description" content={descricao} />
+    <meta property="og:title" content={titulo} />
+    <meta property="og:description" content={descricao} />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#26213f" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+    {!inicio && (
+      <header class="topo">
+        <a class="marca" href="/">
+          <Lanterna tamanho={30} />
+          <span>Alumia Aqui</span>
+        </a>
+        <a class="nova-busca" href="/">Nova busca</a>
+      </header>
+    )}
+    <main id="conteudo">
+      <slot />
+    </main>
+    <footer class="rodape">
+      <p>
+        O Alumia Aqui reúne apenas dados públicos e oficiais, com link para cada fonte.
+        Não avaliamos candidatos. O mesmo método vale para todos.
+      </p>
+      <p><a href="/como-funciona/">Como funciona</a></p>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --noite: #26213f;
+    --noite-clara: #39325c;
+    --luz: #ffe27a;
+    --luz-forte: #ffd23f;
+    --papel: #fff8e3;
+    --tinta: #26213f;
+    --tinta-suave: #5a5370;
+    --borda: #eadba8;
+    --raio: 14px;
+    --largura: 44rem;
+    color-scheme: light;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    font-family: "Atkinson Hyperlegible Next", system-ui, sans-serif;
+    font-size: 118.75%; /* 19px: leitura confortável para quem enxerga pouco */
+    line-height: 1.55;
+    color: var(--tinta);
+    background: var(--papel);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
+  main { flex: 1; }
+
+  h1, h2, h3 { line-height: 1.2; margin: 0; }
+  p { margin: 0; }
+
+  a { color: var(--tinta); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  a:hover { text-decoration-thickness: 3px; }
+
+  :focus-visible { outline: 3px solid var(--noite); outline-offset: 3px; border-radius: 4px; }
+
+  .pular {
+    position: absolute; left: 1rem; top: -4rem;
+    background: var(--luz); padding: 0.5rem 1rem; border-radius: 8px; z-index: 10;
+  }
+  .pular:focus { top: 1rem; }
+
+  .topo {
+    background: var(--noite);
+    color: var(--papel);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.75rem 1rem;
+  }
+  .topo a { color: var(--papel); }
+  .topo :focus-visible { outline-color: var(--luz); }
+  .marca {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-weight: 700; font-size: 1.1rem; text-decoration: none;
+  }
+  .marca svg { color: var(--papel); }
+
+  .rodape {
+    border-top: 2px solid var(--borda);
+    padding: 1.5rem 1rem 2rem;
+    color: var(--tinta-suave);
+    font-size: 0.9rem;
+  }
+  .rodape p { max-width: var(--largura); margin: 0 auto 0.5rem; }
+
+  .conteudo { max-width: var(--largura); margin: 0 auto; padding: 0 1rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>

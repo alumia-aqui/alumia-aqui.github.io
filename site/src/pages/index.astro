@@ -1,0 +1,181 @@
+---
+import Base from "../layouts/Base.astro";
+import Lanterna from "../components/Lanterna.astro";
+---
+<Base titulo="Alumia Aqui: conheça quem pede o seu voto" inicio>
+  <section class="ceu">
+    <p class="marca-inicio">Alumia Aqui</p>
+    <Lanterna tamanho={72} classe="lanterna" />
+    <div class="feixe" aria-hidden="true"></div>
+    <div class="clareira">
+      <h1>Conheça quem pede o seu voto</h1>
+      <p class="apoio">Dados públicos e oficiais de cada candidato, com o link de cada fonte.</p>
+      <form id="busca" role="search" action="/" autocomplete="off">
+        <label for="termo">Nome, nome de urna ou número do candidato</label>
+        <div class="campo">
+          <input id="termo" name="q" type="search" inputmode="search" enterkeyhint="search" />
+          <button type="submit">Alumia aqui</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="conteudo resultados">
+    <p id="aviso" class="aviso" aria-live="polite"></p>
+    <ul id="lista" class="lista"></ul>
+  </section>
+</Base>
+
+<style>
+  .ceu {
+    position: relative;
+    background: radial-gradient(120% 90% at 50% 0%, var(--noite-clara), var(--noite) 60%);
+    color: var(--papel);
+    padding: 1.25rem 1rem 2.5rem;
+    text-align: center;
+    overflow: hidden;
+  }
+  .marca-inicio { font-weight: 700; font-size: 1.1rem; text-align: left; max-width: var(--largura); margin: 0 auto; }
+
+  .ceu :global(.lanterna) {
+    display: block; margin: 1rem auto 0; color: var(--papel);
+    position: relative; z-index: 2;
+  }
+
+  /* O feixe de luz que sai da lanterna e cai sobre a busca */
+  .feixe {
+    position: absolute; left: 50%; top: 7.2rem;
+    width: min(46rem, 130vw); height: 16rem;
+    transform: translateX(-50%);
+    clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+    background: linear-gradient(to bottom, rgb(255 226 122 / 0.55), transparent 92%);
+    opacity: 0.6;
+    transition: opacity 0.4s ease, filter 0.4s ease;
+    pointer-events: none;
+  }
+  .ceu:focus-within .feixe, .ceu.buscando .feixe { opacity: 1; filter: brightness(1.15); }
+
+  .clareira {
+    position: relative; z-index: 1;
+    max-width: 36rem; margin: 3.5rem auto 0;
+    background: var(--luz);
+    color: var(--tinta);
+    border-radius: 28px;
+    padding: 1.75rem 1.25rem 1.5rem;
+    box-shadow: 0 0 60px rgb(255 226 122 / 0.45);
+  }
+  h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); letter-spacing: -0.01em; }
+  .apoio { margin-top: 0.5rem; }
+
+  form { margin-top: 1.25rem; text-align: left; }
+  label { display: block; font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem; }
+  .campo { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  input {
+    flex: 1 1 14rem; min-width: 0;
+    font: inherit; font-size: 1.1rem;
+    padding: 0.8rem 1rem;
+    border: 2px solid var(--noite); border-radius: 12px;
+    background: #fffdf5; color: var(--tinta);
+  }
+  button {
+    flex: 0 0 auto;
+    font: inherit; font-weight: 700; font-size: 1.1rem;
+    padding: 0.8rem 1.4rem;
+    border: none; border-radius: 12px;
+    background: var(--noite); color: var(--luz);
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.2s ease;
+  }
+  button:hover { background: var(--noite-clara); }
+  button:active { transform: scale(0.96); }
+  @media (max-width: 30rem) { button { flex-basis: 100%; } }
+
+  .resultados { padding-top: 1.5rem; padding-bottom: 2rem; }
+  .aviso { color: var(--tinta-suave); min-height: 1.5em; }
+  .lista { list-style: none; margin: 0.5rem 0 0; padding: 0; }
+  .lista :global(li) { border-bottom: 2px solid var(--borda); }
+  .lista :global(a) {
+    display: block; padding: 0.9rem 0.25rem; text-decoration: none;
+    border-radius: 8px;
+    animation: surgir 0.25s ease both;
+  }
+  .lista :global(a:hover) { background: rgb(255 226 122 / 0.35); }
+  .lista :global(.nome) { display: block; font-weight: 700; font-size: 1.15rem; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .lista :global(.detalhe) { display: block; color: var(--tinta-suave); }
+  @keyframes surgir { from { opacity: 0; transform: translateY(4px); } }
+</style>
+
+<!-- is:inline: o Vite não processa este script, e o import do índice da busca fica intacto -->
+<script is:inline type="module">
+  const form = document.getElementById("busca");
+  const campo = document.getElementById("termo");
+  const aviso = document.getElementById("aviso");
+  const lista = document.getElementById("lista");
+  const ceu = document.querySelector(".ceu");
+
+  let pagefind = null;
+  async function carregarBusca() {
+    if (!pagefind) {
+      // Endereço montado em tempo de execução: o índice só existe depois do build.
+      const endereco = new URL("/pagefind/pagefind.js", location.origin).href;
+      pagefind = await import(endereco);
+      await pagefind.options({ excerptLength: 0 });
+    }
+    return pagefind;
+  }
+
+  function escapar(texto) {
+    const div = document.createElement("div");
+    div.textContent = texto ?? "";
+    return div.innerHTML;
+  }
+
+  let ultima = 0;
+  async function buscar(termo) {
+    const id = ++ultima;
+    termo = termo.trim();
+    if (termo.length < 2) {
+      lista.innerHTML = "";
+      aviso.textContent = termo ? "Digite pelo menos duas letras." : "";
+      return;
+    }
+    ceu.classList.add("buscando");
+    aviso.textContent = "Procurando...";
+    try {
+      const pf = await carregarBusca();
+      const resposta = await pf.search(termo);
+      const itens = await Promise.all(resposta.results.slice(0, 20).map((r) => r.data()));
+      if (id !== ultima) return;
+      lista.innerHTML = itens
+        .map((d) => `<li><a href="${d.url}"><span class="nome">${escapar(d.meta.title)}</span><span class="detalhe">${escapar(d.meta.descricao)}</span></a></li>`)
+        .join("");
+      const total = resposta.results.length;
+      aviso.textContent =
+        total === 0
+          ? `Nenhum candidato encontrado para "${termo}". Confira a grafia ou tente o nome de urna.`
+          : total > 20
+            ? `${total} candidatos encontrados. Mostrando os 20 primeiros; digite mais do nome para refinar.`
+            : `${total} ${total === 1 ? "candidato encontrado" : "candidatos encontrados"}.`;
+    } catch {
+      aviso.textContent = "A busca não carregou. Verifique a internet e tente de novo.";
+    } finally {
+      ceu.classList.remove("buscando");
+    }
+  }
+
+  let espera;
+  campo.addEventListener("focus", () => { carregarBusca().catch(() => {}); }, { once: true });
+  campo.addEventListener("input", () => {
+    clearTimeout(espera);
+    espera = window.setTimeout(() => buscar(campo.value), 250);
+  });
+  form.addEventListener("submit", (evento) => {
+    evento.preventDefault();
+    clearTimeout(espera);
+    buscar(campo.value);
+    history.replaceState(null, "", campo.value ? `?q=${encodeURIComponent(campo.value)}` : "/");
+  });
+
+  const inicial = new URLSearchParams(location.search).get("q");
+  if (inicial) { campo.value = inicial; buscar(inicial); }
+</script>

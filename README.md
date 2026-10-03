@@ -19,7 +19,15 @@ O eleitor digita o nome do candidato, confirma a pessoa certa numa lista com fot
 - **site/** - site estático em Astro. Gera uma página por candidato a partir dos arquivos do pipeline.
 - **docs/** - documentação de fontes, modelo de dados e decisões.
 
-## 2 - Stack
+## 2 - Como rodar
+
+Pré-requisitos: Python 3.14 e Node.js 24.
+
+- **Gerar os dados:** `python pipeline/gerar_pessoas.py`. Baixa os arquivos do TSE e gera um JSON por pessoa em pipeline/saida/. Na primeira vez cria a chave em .env, que precisa ser guardada.
+- **Instalar o site:** `npm install`, dentro de site/.
+- **Ver o site:** `npm run build` e depois `npm run preview`, dentro de site/. A busca só funciona depois do build, porque o índice é gerado nele.
+
+## 3 - Stack
 
 - **Python:** coleta e tratamento dos dados.
 - **GitHub Actions:** atualização periódica dos dados.
@@ -27,7 +35,7 @@ O eleitor digita o nome do candidato, confirma a pessoa certa numa lista com fot
 - **Pagefind:** busca no navegador, sem servidor.
 - **Cloudflare Pages:** hospedagem.
 
-## 3 - Fontes de dados
+## 4 - Fontes de dados
 
 Fase atual: dados do TSE (candidaturas, bens, certidões, contas de campanha).
 
@@ -35,7 +43,7 @@ Previstas: APIs da Câmara e do Senado, CGU/Portal da Transparência, TCU, CNJ, 
 
 TODO: documentar campos e forma de acesso de cada fonte em docs/fontes.md.
 
-## 4 - Roadmap
+## 5 - Roadmap
 
 0. Dados do TSE e página simples por candidato.
 1. Site publicado com busca, disclaimer e página "Como funciona".
@@ -45,7 +53,7 @@ TODO: documentar campos e forma de acesso de cada fonte em docs/fontes.md.
 5. Contratos e obras: PNCP e Obrasgov.
 6. Praça: seção da comunidade para envio e avaliação de fontes.
 
-## 5 - Licença
+## 6 - Licença
 
 Código sob AGPL-3.0. Quem publicar versão modificada como site precisa publicar o código dessa versão.
 
