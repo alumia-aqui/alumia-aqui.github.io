@@ -12,10 +12,11 @@ import Base from "../layouts/Base.astro";
 
     <h2>De onde vêm os dados</h2>
     <p>
-      Dos dados abertos de três instituições. O Tribunal Superior Eleitoral (TSE) publica as
+      Dos dados abertos de quatro instituições. O Tribunal Superior Eleitoral (TSE) publica as
       candidaturas de cada eleição, os bens declarados e as fotos dos candidatos. A Câmara dos
       Deputados e o Senado Federal publicam os mandatos, os projetos apresentados e os gastos com
-      a cota parlamentar. Cada informação no Retrato tem o link da fonte, para qualquer pessoa conferir.
+      a cota parlamentar. A Controladoria-Geral da União (CGU) publica os cadastros de sanções.
+      Cada informação no Retrato tem o link da fonte, para qualquer pessoa conferir.
     </p>
 
     <h2>As regras que seguimos</h2>
@@ -38,6 +39,12 @@ import Base from "../layouts/Base.astro";
       que precisam ser iguais aos registrados no TSE.
     </p>
     <p>
+      Sanções da CGU são ligadas pelo CPF, que os cadastros CEIS e CNEP publicam completo. O CEAF
+      mostra só seis dígitos do CPF; nesse caso, também é exigido o nome completo idêntico ao do TSE.
+      Listas que não trazem CPF, como a de inabilitados do Tribunal de Contas da União, não entram,
+      porque só o nome não garante que se trata da mesma pessoa.
+    </p>
+    <p>
       A foto de cada candidato é a mesma que ele entregou ao TSE e que aparece na urna.
       Ela serve só para ajudar você a confirmar que encontrou a pessoa certa.
     </p>
@@ -56,8 +63,8 @@ import Base from "../layouts/Base.astro";
 
     <h2>O que ainda vem por aí</h2>
     <p>
-      Contas de campanha, votações e presença no Congresso, mandatos em assembleias estaduais
-      e câmaras municipais, processos e sanções. Enquanto
+      Contas de campanha, processos criminais, empresas em que o candidato é sócio, votações
+      no Congresso e mandatos em assembleias estaduais e câmaras municipais. Enquanto
       não forem incluídos, a ausência dessas informações não significa que elas não existam.
     </p>
   </article>

@@ -66,3 +66,11 @@ print("Campos preenchidos no ano mais recente:", dict(campos))
 for p in sorted(com_atuacao, key=lambda p: p["nome"])[:: max(1, len(com_atuacao) // 5)][:5]:
     a = p["parlamento"]["atuacao_camara"][0]
     print(f"- {p['nome']} {a['ano']}: plenário {a['presenca_plenario']}, imóvel {a['imovel_funcional']}, verba {a['verba_gabinete']}")
+
+# Sanções (gerar_sancoes.py).
+com_sancao = [p for p in pessoas if (p.get("sancoes") or {}).get("registros")]
+print(f"\nCom sanção registrada na CGU: {len(com_sancao)}")
+print("Por cadastro:", dict(Counter(s["cadastro"] for p in com_sancao for s in p["sancoes"]["registros"])))
+print("Ativas:", sum(1 for p in com_sancao for s in p["sancoes"]["registros"] if s["vigente"]))
+print("Categorias:", Counter(s["categoria"] for p in com_sancao for s in p["sancoes"]["registros"]).most_common(6))
+print("Origens:", Counter(s["origem"] for p in com_sancao for s in p["sancoes"]["registros"]).most_common(5))

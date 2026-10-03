@@ -67,6 +67,19 @@ const recursos = atuacao[0];
 const perfilCamara = parlamento?.perfis.find((p) => p.casa === "Câmara dos Deputados");
 const percentual = (n) => n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 
+// Sanções nos cadastros da CGU (gerar_sancoes.py).
+const sancoes = pessoa.sancoes;
+const EXPLICA_CADASTRO = {
+  CEIS: "pessoas e empresas punidas ou proibidas de contratar com o poder público, incluindo condenações por improbidade administrativa enviadas pelo CNJ",
+  CNEP: "punições com base na Lei Anticorrupção",
+  CEAF: "servidores federais expulsos do serviço público",
+};
+const periodoSancao = (s) => {
+  if (s.inicio && s.fim) return `De ${dataBr(s.inicio)} a ${dataBr(s.fim)}`;
+  if (s.inicio) return `Desde ${dataBr(s.inicio)}, sem data de término informada`;
+  return null;
+};
+
 const anteriores = [...new Set(pessoa.candidaturas.map((c) => c.ano))].sort((a, b) => b - a);
 const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${ano}`;
 ---
@@ -118,6 +131,59 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
       </dl>
       <p class="fonte">Fonte: <a href={fonteTse(recente.ano)}>TSE, candidatos de {recente.ano}</a>. Informações declaradas pelo próprio candidato.{foto && " A foto é a entregue ao TSE no registro da candidatura."}</p>
     </section>
+
+    {sancoes && (
+      <section>
+        <h2>Tem sanções registradas?</h2>
+        {sancoes.registros.length === 0 ? (
+          <p>
+            Nenhuma sanção encontrada nos cadastros da Controladoria-Geral da União (CEIS, CNEP e CEAF),
+            consultados em {dataBr(sancoes.consultado_em)}.
+          </p>
+        ) : (
+          <>
+            <p>
+              <strong>{sancoes.registros.length}</strong>
+              {sancoes.registros.length === 1 ? " sanção registrada" : " sanções registradas"} nos cadastros da
+              Controladoria-Geral da União, consultados em {dataBr(sancoes.consultado_em)}.
+            </p>
+            <ol class="sancoes">
+              {sancoes.registros.map((s) => (
+                <li>
+                  <p class="categoria">{s.categoria}</p>
+                  <p class="situacao-sancao">{s.vigente ? "Ativa no cadastro" : "Encerrada"}</p>
+                  {periodoSancao(s) && <p>{periodoSancao(s)}.</p>}
+                  {s.orgao && (
+                    <p>
+                      Aplicada por: {s.orgao}
+                      {s.uf_orgao && <> ({s.uf_orgao})</>}
+                      {s.esfera && <>, esfera {minusculo(s.esfera)}</>}.
+                    </p>
+                  )}
+                  {s.transito_julgado && <p>Decisão definitiva (trânsito em julgado) em {dataBr(s.transito_julgado)}.</p>}
+                  {s.fundamento && <p>Fundamento: {s.fundamento}.</p>}
+                  {s.processo && <p>Processo nº {s.processo}.</p>}
+                  {s.origem && <p>Informação enviada por: {s.origem}.</p>}
+                  <p class="fonte">
+                    Cadastro <a href={`https://portaldatransparencia.gov.br/sancoes/${s.cadastro.toLowerCase()}`}>{s.cadastro}</a>:
+                    {" "}{EXPLICA_CADASTRO[s.cadastro]}. Código da sanção: {s.codigo}.
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+        <p class="explica nota">
+          Esses cadastros reúnem punições administrativas e condenações por improbidade. Não incluem processos
+          criminais nem ações em andamento. Uma sanção pode ter sido contestada ou revista depois do registro;
+          para detalhes, consulte o processo no órgão que a aplicou.
+        </p>
+        <p class="fonte">
+          Fonte: <a href="https://portaldatransparencia.gov.br/sancoes">Portal da Transparência, Controladoria-Geral da União</a>.
+          A ligação é feita pelo CPF publicado pela CGU; no CEAF, que mostra só parte do CPF, também é exigido o nome completo idêntico.
+        </p>
+      </section>
+    )}
 
     {parlamento && (
       <section>
@@ -363,8 +429,9 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
     <section>
       <h2>O que ainda não está aqui</h2>
       <p>
-        Contas de campanha, votações no Congresso, presença de senadores e de deputados em mandatos anteriores, mandatos anteriores a 2015,
-        mandatos em assembleias estaduais e câmaras municipais, processos e sanções ainda
+        Contas de campanha, processos criminais, empresas em que é sócio, votações no Congresso,
+        presença de senadores e de deputados em mandatos anteriores, mandatos anteriores a 2015
+        e mandatos em assembleias estaduais e câmaras municipais ainda
         não foram incluídos no Alumia Aqui. A ausência dessas informações nesta página não
         significa que elas não existam.
       </p>
@@ -436,6 +503,11 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
   .ementa { margin-top: 0.25rem; }
   .situacao-projeto { color: var(--tinta-suave); font-size: 0.95rem; margin-top: 0.25rem; }
   .casa { font-weight: 400; color: var(--tinta-suave); }
+  .sancoes { list-style: none; margin: 0.75rem 0 0; padding: 0; }
+  .sancoes li { padding: 0.9rem 1rem; margin-bottom: 0.75rem; border: 2px solid var(--borda); border-radius: var(--raio); }
+  .sancoes p + p { margin-top: 0.2rem; }
+  .categoria { font-weight: 700; font-size: 1.05rem; }
+  .situacao-sancao { font-weight: 700; color: var(--tinta-suave); }
   .presencas { list-style: none; margin: 0; padding: 0; }
   .presencas li { padding: 0.6rem 0; border-bottom: 2px solid var(--borda); }
   .presencas p + p { margin-top: 0.25rem; }
