@@ -116,7 +116,7 @@ def ler(pagina: str) -> dict:
 def baixar(id_deputado: str, ano: int) -> str:
     url = f"https://www.camara.leg.br/deputados/{id_deputado}?ano={ano}"
     pedido = urllib.request.Request(url, headers={"User-Agent": "alumia-aqui (dados abertos)"})
-    with urllib.request.urlopen(pedido, timeout=120) as resposta:
+    with urllib.request.urlopen(pedido, timeout=30) as resposta:
         return resposta.read().decode("utf-8", "replace")
 
 

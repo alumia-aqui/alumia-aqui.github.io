@@ -53,6 +53,7 @@ TIPOS = {
     "PDL": "Projeto de decreto legislativo",
 }
 RECENTES = 10
+TEMPO_PAGINAS_CAMARA = 25 * 60  # segundos por execução
 
 
 # ---------------------------------------------------------------- utilidades
@@ -244,6 +245,10 @@ def paginas_camara(deputados: dict, ligados: dict, registros: dict) -> None:
     pasta = PASTA / "camara_paginas"
     pasta.mkdir(parents=True, exist_ok=True)
     lidos, falhas = 0, []
+    # Limites para não travar a publicação: o que faltar fica para a próxima execução.
+    prazo = time.time() + TEMPO_PAGINAS_CAMARA
+    falhas_seguidas = 0
+    interrompido = None
     for id_deputado, id_pessoa in ligados.items():
         if not any(m["inicio"] == inicio for m in deputados[id_deputado]["mandatos"]):
             continue
@@ -251,14 +256,24 @@ def paginas_camara(deputados: dict, ligados: dict, registros: dict) -> None:
         for ano in range(inicio, ANO_ATUAL + 1):
             destino = pasta / f"{id_deputado}_{ano}.json"
             validade = 1 if ano >= ANO_ATUAL else 30
-            if destino.exists() and time.time() - destino.stat().st_mtime < validade * 86400:
+            atualizado = destino.exists() and time.time() - destino.stat().st_mtime < validade * 86400
+            if not atualizado and interrompido is None:
+                if time.time() > prazo:
+                    interrompido = "tempo esgotado"
+                elif falhas_seguidas >= 10:
+                    interrompido = "10 falhas seguidas"
+            if atualizado or (interrompido and destino.exists()):
                 dados = json.loads(destino.read_text(encoding="utf-8"))
+            elif interrompido:
+                continue
             else:
                 try:
                     dados = camara_pagina.ler(camara_pagina.baixar(id_deputado, ano))
                 except Exception as erro:
                     falhas.append(f"{deputados[id_deputado]['nome']} {ano}: {erro}")
+                    falhas_seguidas += 1
                     continue
+                falhas_seguidas = 0
                 destino.write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
                 lidos += 1
                 time.sleep(0.2)
@@ -270,6 +285,8 @@ def paginas_camara(deputados: dict, ligados: dict, registros: dict) -> None:
         1 for r in registros.values() if any(a.get("presenca_plenario") for a in r["atuacao_camara"])
     )
     print(f"  Páginas da Câmara: {lidos} lidas agora; {com_presenca} deputados com presença registrada")
+    if interrompido:
+        print(f"  Leitura interrompida ({interrompido}); o restante fica para a próxima execução.")
     if falhas:
         print(f"  {len(falhas)} páginas não puderam ser lidas, por exemplo: {falhas[:3]}")
 
