@@ -62,7 +62,9 @@ def presenca(pagina: str, titulo: str) -> dict | None:
     inicio = pagina.find(f'data-original-title="{titulo}"')
     if inicio < 0:
         return None
-    trecho = pagina[inicio : inicio + 4000]
+    # Vai até a próxima seção de presença (o HTML real tem muita indentação entre as tags).
+    proxima = pagina.find('data-original-title="Presença', inicio + 10)
+    trecho = pagina[inicio : proxima if proxima > 0 else inicio + 20000]
     pares = re.findall(
         r'class="presencas__label">(.*?)</span>\s*<span class="presencas__qtd">\s*(.*?)\s*</span>',
         trecho,
@@ -88,7 +90,7 @@ def verba_gabinete(pagina: str) -> dict | None:
     for linha in re.findall(r"<tr>(.*?)</tr>", tabela, re.DOTALL):
         celulas = [texto(c) for c in re.findall(r"<td[^>]*>(.*?)</td>", linha, re.DOTALL)]
         if len(celulas) >= 3 and celulas[0].lower().startswith("gast"):
-            percentual = re.search(r"\d+(?:,\d+)?", celulas[2])
+            percentual = re.search(r"\d+(?:[.,]\d+)?", celulas[2])
             return {
                 "gasto": reais(celulas[1]),
                 "percentual": float(percentual.group(0).replace(",", ".")) if percentual else None,
