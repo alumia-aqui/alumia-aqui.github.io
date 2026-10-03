@@ -2,6 +2,7 @@
 import "@fontsource/atkinson-hyperlegible-next/latin-400.css";
 import "@fontsource/atkinson-hyperlegible-next/latin-700.css";
 import Lanterna from "../components/Lanterna.astro";
+import { caminho } from "../lib/caminho.js";
 
 interface Props {
   titulo: string;
@@ -25,17 +26,17 @@ const {
     <meta property="og:description" content={descricao} />
     <meta property="og:type" content="website" />
     <meta name="theme-color" content="#26213f" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href={caminho("favicon.svg")} type="image/svg+xml" />
   </head>
   <body>
     <a class="pular" href="#conteudo">Pular para o conteúdo</a>
     {!inicio && (
       <header class="topo">
-        <a class="marca" href="/">
+        <a class="marca" href={caminho()}>
           <Lanterna tamanho={30} />
           <span>Alumia Aqui</span>
         </a>
-        <a class="nova-busca" href="/">Nova busca</a>
+        <a class="nova-busca" href={caminho()}>Nova busca</a>
       </header>
     )}
     <main id="conteudo">
@@ -46,7 +47,7 @@ const {
         O Alumia Aqui reúne apenas dados públicos e oficiais, com link para cada fonte.
         Não avaliamos candidatos. O mesmo método vale para todos.
       </p>
-      <p><a href="/como-funciona/">Como funciona</a></p>
+      <p><a href={caminho("como-funciona/")}>Como funciona</a></p>
     </footer>
   </body>
 </html>
