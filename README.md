@@ -46,7 +46,7 @@ Em uso: TSE (candidaturas, bens, fotos), Câmara e Senado (mandatos, proposiçõ
 
 Próximas do TSE: certidões e contas de campanha.
 
-Previstas: APIs da Câmara e do Senado, CGU/Portal da Transparência, TCU, CNJ, CNPJ da Receita Federal, PNCP e Obrasgov.
+Previstas: PNCP, Obrasgov e emendas parlamentares (Portal da Transparência).
 
 TODO: documentar campos e forma de acesso de cada fonte em docs/fontes.md.
 
@@ -58,7 +58,8 @@ TODO: documentar campos e forma de acesso de cada fonte em docs/fontes.md.
 3. Sanções e empresas: TCU, CGU, CNJ, sociedades.
 4. Aba educativa: poderes, cargos, processos públicos.
 5. Contratos e obras: PNCP e Obrasgov.
-6. Praça: seção da comunidade para envio e avaliação de fontes.
+6. Painéis: visão geral dos candidatos e mandatos, com filtros (escolaridade, partido, cargo, UF, projetos aprovados, gastos de cota por partido, emendas parlamentares). Mesmas regras de neutralidade: sem ranking pronto, ordem padrão alfabética, valores comparáveis (por parlamentar, por mês) e fonte em cada número.
+7. Praça: seção da comunidade para envio e avaliação de fontes.
 
 ## 6 - Licença
 
