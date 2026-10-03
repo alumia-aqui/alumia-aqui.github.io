@@ -127,7 +127,7 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
           {parlamento.mandatos.map((m) => (
             <li>
               <strong>{m.casa}</strong>, representando {nomeUf(m.uf)}, de {m.inicio} a {m.fim}
-              {m.partido && <> (partido {m.partido})</>}
+              {m.partido && <> ({m.partido.includes(",") ? "partidos" : "partido"} {m.partido})</>}
               {m.participacao && <>, {participacaoSenado(m.participacao)}</>}
             </li>
           ))}

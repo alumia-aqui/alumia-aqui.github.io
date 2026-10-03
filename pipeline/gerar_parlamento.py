@@ -412,6 +412,20 @@ def senado(pessoas: list[dict], registros: dict) -> None:
 
 # ---------------------------------------------------------------- saída
 
+def unir_mandatos(mandatos: list[dict]) -> list[dict]:
+    """Um mandato por casa, período e UF. A Câmara repete o deputado quando ele troca de
+    partido ou volta de licença; os partidos ficam juntos, na ordem em que aparecem."""
+    unidos: dict[tuple, dict] = {}
+    for m in mandatos:
+        chave = (m["casa"], m["inicio"], m["fim"], m.get("uf"), m.get("participacao"))
+        if chave not in unidos:
+            unidos[chave] = dict(m)
+        elif m.get("partido") and m["partido"] not in (unidos[chave].get("partido") or "").split(", "):
+            anterior = unidos[chave].get("partido")
+            unidos[chave]["partido"] = f"{anterior}, {m['partido']}" if anterior else m["partido"]
+    return sorted(unidos.values(), key=lambda m: m["inicio"], reverse=True)
+
+
 def finalizar(registro: dict) -> dict:
     proposicoes = sorted(registro["proposicoes"], key=lambda p: p["data"], reverse=True)
     vistas = set()
@@ -439,7 +453,7 @@ def finalizar(registro: dict) -> dict:
 
     return {
         "desde": PRIMEIRO_ANO,
-        "mandatos": sorted(registro["mandatos"], key=lambda m: m["inicio"], reverse=True),
+        "mandatos": unir_mandatos(registro["mandatos"]),
         "perfis": registro["perfis"],
         "proposicoes": {
             "autor": len(autor),
