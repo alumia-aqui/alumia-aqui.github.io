@@ -88,3 +88,22 @@ export function idade(dataNascimento) {
 export function nomeExibido(c, pessoa) {
   return nomeProprio(c?.nome_social || c?.nome_urna || pessoa.nome);
 }
+
+const REAIS = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+export function reais(valor) {
+  return valor == null ? "" : REAIS.format(valor);
+}
+
+// Soma os bens por tipo: "Casa" R$ 300 mil, "Veículo" R$ 50 mil...
+export function bensPorTipo(bens) {
+  const somas = new Map();
+  for (const bem of bens ?? []) {
+    const tipo = primeiraMaiuscula(minusculo(bem.tipo || "Outros"));
+    const atual = somas.get(tipo) ?? { tipo, valor: 0, quantidade: 0 };
+    atual.valor += bem.valor ?? 0;
+    atual.quantidade += 1;
+    somas.set(tipo, atual);
+  }
+  return [...somas.values()].sort((a, b) => b.valor - a.valor);
+}
