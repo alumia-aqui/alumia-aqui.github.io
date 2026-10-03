@@ -60,6 +60,12 @@ const maiorCota = Math.max(1, ...cota.map((c) => c.total));
 // Categorias: o ano completo mais recente; se só houver o ano atual, ele mesmo.
 const anoHoje = new Date().getFullYear();
 const cotaReferencia = cota.find((c) => c.ano < anoHoje) ?? cota[0];
+// Página do deputado no site da Câmara (legislatura atual).
+const atuacao = parlamento?.atuacao_camara ?? [];
+const comPresenca = atuacao.filter((a) => a.presenca_plenario || a.presenca_comissoes);
+const recursos = atuacao[0];
+const perfilCamara = parlamento?.perfis.find((p) => p.casa === "Câmara dos Deputados");
+const percentual = (n) => n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 
 const anteriores = [...new Set(pessoa.candidaturas.map((c) => c.ano))].sort((a, b) => b - a);
 const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${ano}`;
@@ -126,6 +132,37 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
             </li>
           ))}
         </ul>
+
+        {comPresenca.length > 0 && (
+          <>
+            <h3 class="sub">Presença na Câmara</h3>
+            <p class="explica">
+              No Plenário, a Câmara conta os dias com sessão de votação; nas comissões, as reuniões.
+              Falta não justificada no Plenário gera desconto no salário.
+            </p>
+            <ul class="presencas">
+              {comPresenca.map((a) => (
+                <li>
+                  <p class="ano-bens">{a.ano}{a.ano === anoHoje && ", até agora"}</p>
+                  {a.presenca_plenario && (
+                    <p>
+                      <strong>Plenário:</strong> presente em {a.presenca_plenario.presencas} dias.
+                      Ausências justificadas: {a.presenca_plenario.ausencias_justificadas}.
+                      Não justificadas: {a.presenca_plenario.ausencias_nao_justificadas}.
+                    </p>
+                  )}
+                  {a.presenca_comissoes && (
+                    <p>
+                      <strong>Comissões:</strong> presente em {a.presenca_comissoes.presencas} reuniões.
+                      Ausências justificadas: {a.presenca_comissoes.ausencias_justificadas}.
+                      Não justificadas: {a.presenca_comissoes.ausencias_nao_justificadas}.
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
         <h3 class="sub">Projetos que apresentou</h3>
         {parlamento.proposicoes.autor + parlamento.proposicoes.coautor === 0 ? (
@@ -200,8 +237,46 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
           </>
         )}
 
+        {recursos && (
+          <>
+            <h3 class="sub">Salário e recursos do mandato em {recursos.ano}</h3>
+            <dl class="ficha">
+              {recursos.salario_bruto && (
+                <div><dt>Salário bruto</dt><dd>{reais(recursos.salario_bruto)} por mês, igual para todos os deputados federais</dd></div>
+              )}
+              {recursos.imovel_funcional && (
+                <div><dt>Imóvel funcional em Brasília</dt><dd>{recursos.imovel_funcional}</dd></div>
+              )}
+              {recursos.auxilio_moradia && (
+                <div><dt>Auxílio-moradia</dt><dd>{recursos.auxilio_moradia}</dd></div>
+              )}
+              {recursos.verba_gabinete?.gasto != null && (
+                <div>
+                  <dt>Verba de gabinete</dt>
+                  <dd>
+                    {reais(recursos.verba_gabinete.gasto)}
+                    {recursos.verba_gabinete.percentual != null && <> ({percentual(recursos.verba_gabinete.percentual)}% do limite)</>}
+                  </dd>
+                </div>
+              )}
+              {recursos.pessoal_gabinete && (
+                <div><dt>Pessoal de gabinete</dt><dd>{recursos.pessoal_gabinete}</dd></div>
+              )}
+              {recursos.viagens_missao_oficial != null && (
+                <div><dt>Viagens em missão oficial</dt><dd>{recursos.viagens_missao_oficial}</dd></div>
+              )}
+            </dl>
+            <p class="explica nota">
+              A verba de gabinete paga os salários dos secretários parlamentares, escolhidos pelo próprio deputado.
+              O imóvel funcional é um apartamento da Câmara em Brasília; quem não usa pode receber o auxílio-moradia.
+            </p>
+          </>
+        )}
+
         <p class="fonte">
-          Fonte: dados abertos da Câmara dos Deputados e do Senado Federal. Perfil oficial:{" "}
+          Fonte: dados abertos da Câmara dos Deputados e do Senado Federal
+          {atuacao.length > 0 && <>; presença, salário e recursos do mandato vêm da página do deputado no site da Câmara</>}.
+          Perfil oficial:{" "}
           {parlamento.perfis.map((perfil, i) => (
             <>{i > 0 && ", "}<a href={perfil.url}>{perfil.casa}</a></>
           ))}.
@@ -288,7 +363,7 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
     <section>
       <h2>O que ainda não está aqui</h2>
       <p>
-        Contas de campanha, votações e presença no Congresso, mandatos anteriores a 2015,
+        Contas de campanha, votações no Congresso, presença de senadores e de deputados em mandatos anteriores, mandatos anteriores a 2015,
         mandatos em assembleias estaduais e câmaras municipais, processos e sanções ainda
         não foram incluídos no Alumia Aqui. A ausência dessas informações nesta página não
         significa que elas não existam.
@@ -361,6 +436,9 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
   .ementa { margin-top: 0.25rem; }
   .situacao-projeto { color: var(--tinta-suave); font-size: 0.95rem; margin-top: 0.25rem; }
   .casa { font-weight: 400; color: var(--tinta-suave); }
+  .presencas { list-style: none; margin: 0; padding: 0; }
+  .presencas li { padding: 0.6rem 0; border-bottom: 2px solid var(--borda); }
+  .presencas p + p { margin-top: 0.25rem; }
 
   .total-bens { font-size: clamp(1.8rem, 6vw, 2.4rem); font-weight: 700; line-height: 1.1; }
   .total-bens + .explica { margin-top: 0.25rem; }

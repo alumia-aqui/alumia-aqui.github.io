@@ -66,7 +66,7 @@ def presenca(pagina: str, titulo: str) -> dict | None:
     proxima = pagina.find('data-original-title="Presença', inicio + 10)
     trecho = pagina[inicio : proxima if proxima > 0 else inicio + 20000]
     pares = re.findall(
-        r'class="presencas__label">(.*?)</span>\s*<span class="presencas__qtd">\s*(.*?)\s*</span>',
+        r'class="presencas__label">(.*?)</span>\s*<span\s+class="presencas__qtd">\s*(.*?)\s*</span>',
         trecho,
         re.DOTALL,
     )
