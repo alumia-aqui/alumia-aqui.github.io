@@ -1,5 +1,5 @@
 # Roda um script de exploração de dados no GitHub, sob demanda (aba Actions).
-# Útil para fontes que não abrem do computador local ou para conferir dados no servidor.
+# A saída fica no arquivo saida.txt do ramo "exploracao", separado do código.
 
 name: Explorar dados
 
@@ -12,7 +12,7 @@ on:
         default: explorar_parlamento.py
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   explorar:
@@ -24,4 +24,15 @@ jobs:
         with:
           python-version: "3.14"
       - name: Rodar
-        run: python "pipeline/${{ inputs.script }}"
+        run: python "pipeline/${{ inputs.script }}" 2>&1 | tee /tmp/saida.txt
+      - name: Guardar a saída no ramo exploracao
+        if: always()
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan exploracao
+          git rm -rq --cached .
+          cp /tmp/saida.txt saida.txt
+          git add saida.txt
+          git commit -qm "Saída de ${{ inputs.script }}"
+          git push -qf origin exploracao
