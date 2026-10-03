@@ -80,6 +80,23 @@ const periodoSancao = (s) => {
   return null;
 };
 
+// Empresas em que é sócio (gerar_empresas.py + juntar_empresas.py).
+const empresas = pessoa.empresas;
+const formatarCnpj = (c) =>
+  c && c.length === 14 ? `${c.slice(0, 2)}.${c.slice(2, 5)}.${c.slice(5, 8)}/${c.slice(8, 12)}-${c.slice(12)}` : c;
+const referenciaReceita = (r) => (r ? `${r.slice(5, 7)}/${r.slice(0, 4)}` : "");
+
+// Índice da página: só as seções que existem neste Retrato.
+const indice = [
+  { id: "quem-e", titulo: "Quem é" },
+  sancoes && { id: "sancoes", titulo: "Sanções registradas" },
+  empresas && { id: "empresas", titulo: "Empresas em que é sócio" },
+  parlamento && { id: "congresso", titulo: "O que fez no Congresso" },
+  bensAtuais && { id: "bens", titulo: "Bens declarados" },
+  { id: "eleicoes", titulo: "Eleições que disputou" },
+  { id: "falta", titulo: "O que ainda não está aqui" },
+].filter(Boolean);
+
 const anteriores = [...new Set(pessoa.candidaturas.map((c) => c.ano))].sort((a, b) => b - a);
 const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${ano}`;
 ---
@@ -120,7 +137,14 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
       Não fazemos avaliação de candidatos.
     </p>
 
-    <section>
+    <nav class="indice" aria-labelledby="titulo-indice">
+      <p id="titulo-indice" class="indice-titulo">Nesta página</p>
+      <ol>
+        {indice.map((item) => <li><a href={`#${item.id}`}>{item.titulo}</a></li>)}
+      </ol>
+    </nav>
+
+    <section id="quem-e">
       <h2>Quem é</h2>
       <dl class="ficha">
         <div><dt>Nome completo</dt><dd>{nomeProprio(pessoa.nome)}</dd></div>
@@ -133,7 +157,7 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
     </section>
 
     {sancoes && (
-      <section>
+      <section id="sancoes">
         <h2>Tem sanções registradas?</h2>
         {sancoes.registros.length === 0 ? (
           <p>
@@ -185,8 +209,72 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
       </section>
     )}
 
+    {empresas && (
+      <section id="empresas">
+        <h2>Empresas em que é sócio</h2>
+        {empresas.registros.length === 0 ? (
+          <p>
+            Nenhuma empresa encontrada no cadastro de sócios da Receita Federal
+            (dados de {referenciaReceita(empresas.referencia)}).
+          </p>
+        ) : (
+          <>
+            <p>
+              Sócio em <strong>{empresas.registros.length}</strong>
+              {empresas.registros.length === 1 ? " empresa" : " empresas"}, segundo o cadastro da Receita Federal
+              (dados de {referenciaReceita(empresas.referencia)}).
+            </p>
+            <ol class="sancoes">
+              {empresas.registros.map((e) => (
+                <li>
+                  <p class="categoria">{e.razao_social ?? `CNPJ ${e.cnpj_basico}`}</p>
+                  {e.nome_fantasia && <p>Nome fantasia: {e.nome_fantasia}</p>}
+                  <p class="situacao-sancao">
+                    {e.situacao ? `Situação: ${e.situacao}` : "Situação não informada"}
+                    {e.situacao && e.situacao !== "Ativa" && e.data_situacao && <> desde {dataBr(e.data_situacao)}</>}
+                  </p>
+                  <p>
+                    {e.qualificacao}{e.entrada && <> desde {dataBr(e.entrada)}</>}.
+                  </p>
+                  {e.atividade && <p>Atividade principal: {e.atividade}.</p>}
+                  {e.municipio && <p>Sede: {nomeProprio(e.municipio)} ({e.uf}).</p>}
+                  {(e.porte || e.capital_social != null) && (
+                    <p>
+                      {e.porte && <>Porte: {minusculo(e.porte)}. </>}
+                      {e.capital_social != null && <>Capital social: {reais(e.capital_social)}.</>}
+                    </p>
+                  )}
+                  {e.natureza && <p>Tipo: {e.natureza}.</p>}
+                  {e.sancoes?.length > 0 && (
+                    <div class="alerta-empresa">
+                      <p><strong>Esta empresa tem {e.sancoes.length === 1 ? "sanção registrada" : `${e.sancoes.length} sanções registradas`} na CGU:</strong></p>
+                      {e.sancoes.map((s) => (
+                        <p>
+                          {s.categoria} ({s.cadastro}){periodoSancao(s) && <>, {periodoSancao(s).charAt(0).toLowerCase() + periodoSancao(s).slice(1)}</>}
+                          {s.orgao && <>, aplicada por {s.orgao}</>}. Código {s.codigo}.
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  <p class="fonte">CNPJ {formatarCnpj(e.cnpj) ?? e.cnpj_basico}</p>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+        <p class="explica nota">
+          Ser sócio de uma empresa não indica irregularidade. A Receita Federal mostra só seis dígitos do CPF
+          dos sócios; a ligação exige esses dígitos e o nome completo idênticos aos registrados no TSE.
+        </p>
+        <p class="fonte">
+          Fonte: <a href="https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cadastros/consultas/dados-publicos-cnpj">Receita Federal, dados abertos do CNPJ</a>.
+          Sanções de empresas: <a href="https://portaldatransparencia.gov.br/sancoes">CEIS e CNEP, Controladoria-Geral da União</a>.
+        </p>
+      </section>
+    )}
+
     {parlamento && (
-      <section>
+      <section id="congresso">
         <h2>O que fez no Congresso?</h2>
         <p class="explica">Mandatos na Câmara dos Deputados e no Senado Federal desde {parlamento.desde}.</p>
         <ul class="mandatos">
@@ -351,7 +439,7 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
     )}
 
     {bensAtuais && (
-      <section>
+      <section id="bens">
         <h2>Quanto declarou de bens?</h2>
         {bensAtuais.bens.length === 0 ? (
           <p>Não declarou bens ao registrar a candidatura de {bensAtuais.ano}.</p>
@@ -393,7 +481,7 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
       </section>
     )}
 
-    <section>
+    <section id="eleicoes">
       <h2>Quais eleições já disputou?</h2>
       <p class="explica">Todas as candidaturas registradas no TSE desde 2014, da mais recente para a mais antiga.</p>
       <ol class="linha-do-tempo">
@@ -426,10 +514,10 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
       </p>
     </section>
 
-    <section>
+    <section id="falta">
       <h2>O que ainda não está aqui</h2>
       <p>
-        Contas de campanha, processos criminais, empresas em que é sócio, votações no Congresso,
+        Contas de campanha, processos criminais, votações no Congresso,
         presença de senadores e de deputados em mandatos anteriores, mandatos anteriores a 2015
         e mandatos em assembleias estaduais e câmaras municipais ainda
         não foram incluídos no Alumia Aqui. A ausência dessas informações nesta página não
@@ -509,6 +597,21 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
   .categoria { font-weight: 700; font-size: 1.05rem; }
   .situacao-sancao { font-weight: 700; color: var(--tinta-suave); }
   .presencas { list-style: none; margin: 0; padding: 0; }
+  .alerta-empresa {
+    margin-top: 0.6rem; padding: 0.6rem 0.8rem;
+    background: var(--luz); border-radius: 10px;
+  }
+  .alerta-empresa p + p { margin-top: 0.25rem; }
+  section { scroll-margin-top: 1rem; }
+
+  .indice {
+    margin-top: 1.5rem; padding: 1rem 1.1rem;
+    border: 2px solid var(--borda); border-radius: var(--raio);
+  }
+  .indice-titulo { font-weight: 700; margin-bottom: 0.35rem; }
+  .indice ol { margin: 0; padding-left: 1.4rem; }
+  .indice li { padding: 0.2rem 0; }
+  .indice a { display: inline-block; padding: 0.15rem 0; }
   .presencas li { padding: 0.6rem 0; border-bottom: 2px solid var(--borda); }
   .presencas p + p { margin-top: 0.25rem; }
 

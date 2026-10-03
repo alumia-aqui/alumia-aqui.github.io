@@ -22,3 +22,6 @@ Thumbs.db
 
 # Fotos geradas pelo pipeline (gerar_fotos.py)
 site/public/fotos/
+
+# Registro da última execução local
+ferramentas/*.log

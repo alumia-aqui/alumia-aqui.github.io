@@ -25,6 +25,8 @@ Pré-requisitos: Python 3.14 e Node.js 24.
 
 - **Gerar os dados:** `python pipeline/gerar_pessoas.py`. Baixa os arquivos do TSE e gera um JSON por pessoa em pipeline/saida/. Na primeira vez cria a chave em .env, que precisa ser guardada.
 - **Gerar as fotos:** `pip install pillow` uma vez, depois `python pipeline/gerar_fotos.py`. Opcional: sem fotos, o site funciona normalmente.
+- **Empresas (mensal, no computador local):** `powershell -ExecutionPolicy Bypass -File ferramentas\atualizar_empresas.ps1`. Baixa os dados de sócios da Receita Federal, que recusa conexões vindas do GitHub, gera dados/empresas.json e envia ao repositório. Os arquivos da Receita somam alguns GB; só o mês atual fica guardado.
+- **Agendar as empresas:** `schtasks /Create /SC MONTHLY /D 20 /ST 20:00 /TN "Alumia Aqui - empresas" /TR "powershell -ExecutionPolicy Bypass -File \"<caminho do repositório>\ferramentas\atualizar_empresas.ps1\""`. O computador precisa estar ligado e com sessão aberta no horário. Registro da última execução: ferramentas/ultima_execucao_empresas.log.
 - **Instalar o site:** `npm install`, dentro de site/.
 - **Ver o site:** `npm run build` e depois `npm run preview`, dentro de site/. A busca só funciona depois do build, porque o índice é gerado nele.
 
@@ -40,7 +42,7 @@ Pré-requisitos: Python 3.14 e Node.js 24.
 
 ## 4 - Fontes de dados
 
-Fase atual: dados do TSE (candidaturas, bens declarados e fotos).
+Em uso: TSE (candidaturas, bens, fotos), Câmara e Senado (mandatos, proposições, cota, página do deputado), CGU (CEIS, CNEP, CEAF) e Receita Federal (sócios de empresas).
 
 Próximas do TSE: certidões e contas de campanha.
 

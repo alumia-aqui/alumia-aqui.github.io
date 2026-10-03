@@ -100,6 +100,11 @@ jobs:
           ALUMIA_CHAVE: ${{ secrets.ALUMIA_CHAVE }}
         run: python pipeline/gerar_sancoes.py
 
+      # dados/empresas.json vem do computador local (ferramentas/atualizar_empresas.ps1).
+      - name: Juntar empresas (Receita Federal)
+        continue-on-error: true
+        run: python pipeline/juntar_empresas.py
+
       - name: Gerar fotos dos candidatos
         run: |
           pip install pillow
