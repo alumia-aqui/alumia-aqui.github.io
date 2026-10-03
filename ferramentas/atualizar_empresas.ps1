@@ -1,4 +1,4 @@
-# Atualiza dados/empresas.json com os arquivos da Receita Federal e envia ao GitHub.
+﻿# Atualiza dados/empresas.json com os arquivos da Receita Federal e envia ao GitHub.
 # Roda no computador local, porque a Receita recusa conexões vindas do GitHub.
 # Agendamento mensal: ver README, seção "Como rodar".
 
@@ -22,6 +22,9 @@ try {
     git diff --cached --quiet
     if ($LASTEXITCODE -ne 0) {
         git commit -m "Empresas: atualização mensal com os dados da Receita Federal"
+        # Pode ter chegado coisa nova no GitHub durante o download: junta antes de enviar.
+        git pull --rebase --quiet
+        if ($LASTEXITCODE -ne 0) { throw "git pull --rebase falhou" }
         git push
         if ($LASTEXITCODE -ne 0) { throw "git push falhou" }
         Write-Output "Empresas atualizadas e enviadas."
