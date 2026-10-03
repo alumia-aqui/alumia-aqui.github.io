@@ -7,6 +7,9 @@ venv/
 # Dados brutos baixados das fontes (grandes demais para o repositório)
 pipeline/dados_brutos/
 
+# Arquivos gerados pelo pipeline
+pipeline/saida/
+
 # Astro / Node
 site/node_modules/
 site/dist/
