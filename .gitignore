@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Dados brutos baixados das fontes (grandes demais para o repositório)
+pipeline/dados_brutos/
+
+# Astro / Node
+site/node_modules/
+site/dist/
+site/.astro/
+
+# Sistema
+.DS_Store
+Thumbs.db
+.env
