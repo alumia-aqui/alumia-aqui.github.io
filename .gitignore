@@ -19,3 +19,6 @@ site/.astro/
 .DS_Store
 Thumbs.db
 .env
+
+# Fotos geradas pelo pipeline (gerar_fotos.py)
+site/public/fotos/

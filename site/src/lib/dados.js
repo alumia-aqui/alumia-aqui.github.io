@@ -27,3 +27,10 @@ export function carregarPessoas() {
 export function anoAtual(pessoas) {
   return Math.max(...pessoas.flatMap((p) => p.candidaturas.map((c) => c.ano)));
 }
+
+// Fotos geradas por pipeline/gerar_fotos.py em site/public/fotos/<id>.jpg.
+const PASTA_FOTOS = path.resolve(process.cwd(), "public/fotos");
+
+export function temFoto(id) {
+  return fs.existsSync(path.join(PASTA_FOTOS, `${id}.jpg`));
+}
