@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
 import Lanterna from "../components/Lanterna.astro";
+import { caminho } from "../lib/caminho.js";
 ---
 <Base titulo="Alumia Aqui: conheça quem pede o seu voto" inicio>
   <section class="ceu">
@@ -10,7 +11,7 @@ import Lanterna from "../components/Lanterna.astro";
     <div class="clareira">
       <h1>Conheça quem pede o seu voto</h1>
       <p class="apoio">Dados públicos e oficiais de cada candidato, com o link de cada fonte.</p>
-      <form id="busca" role="search" action="/" autocomplete="off">
+      <form id="busca" role="search" action={caminho()} autocomplete="off" data-base={caminho()}>
         <label for="termo">Nome, nome de urna ou número do candidato</label>
         <div class="campo">
           <input id="termo" name="q" type="search" inputmode="search" enterkeyhint="search" />
@@ -117,9 +118,10 @@ import Lanterna from "../components/Lanterna.astro";
   async function carregarBusca() {
     if (!pagefind) {
       // Endereço montado em tempo de execução: o índice só existe depois do build.
-      const endereco = new URL("/pagefind/pagefind.js", location.origin).href;
+      const base = form.dataset.base;
+      const endereco = new URL(base + "pagefind/pagefind.js", location.origin).href;
       pagefind = await import(endereco);
-      await pagefind.options({ excerptLength: 0 });
+      await pagefind.options({ excerptLength: 0, baseUrl: base });
     }
     return pagefind;
   }
@@ -173,7 +175,7 @@ import Lanterna from "../components/Lanterna.astro";
     evento.preventDefault();
     clearTimeout(espera);
     buscar(campo.value);
-    history.replaceState(null, "", campo.value ? `?q=${encodeURIComponent(campo.value)}` : "/");
+    history.replaceState(null, "", campo.value ? `?q=${encodeURIComponent(campo.value)}` : form.dataset.base);
   });
 
   const inicial = new URLSearchParams(location.search).get("q");

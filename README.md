@@ -27,17 +27,21 @@ Pré-requisitos: Python 3.14 e Node.js 24.
 - **Instalar o site:** `npm install`, dentro de site/.
 - **Ver o site:** `npm run build` e depois `npm run preview`, dentro de site/. A busca só funciona depois do build, porque o índice é gerado nele.
 
+- **Publicar:** automático, pelo GitHub Actions (.github/workflows/publicar.yml). Roda a cada push na main, todo dia às 05:17 e sob demanda. Precisa do segredo ALUMIA_CHAVE no repositório, com o mesmo valor do .env local.
+
 ## 3 - Stack
 
 - **Python:** coleta e tratamento dos dados.
 - **GitHub Actions:** atualização periódica dos dados.
 - **Astro:** geração das páginas estáticas.
 - **Pagefind:** busca no navegador, sem servidor.
-- **Cloudflare Pages:** hospedagem.
+- **GitHub Pages:** hospedagem. O Cloudflare Pages gratuito limita o site a 20 mil arquivos, e o Alumia Aqui passa de 40 mil.
 
 ## 4 - Fontes de dados
 
-Fase atual: dados do TSE (candidaturas, bens, certidões, contas de campanha).
+Fase atual: dados do TSE (candidaturas e bens declarados).
+
+Próximas do TSE: fotos, certidões e contas de campanha.
 
 Previstas: APIs da Câmara e do Senado, CGU/Portal da Transparência, TCU, CNJ, CNPJ da Receita Federal, PNCP e Obrasgov.
 

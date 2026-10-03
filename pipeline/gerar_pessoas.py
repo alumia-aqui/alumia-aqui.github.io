@@ -53,6 +53,9 @@ def carregar_chave() -> bytes:
         for linha in ARQUIVO_CHAVE.read_text(encoding="utf-8").splitlines():
             if linha.startswith("ALUMIA_CHAVE="):
                 chave = linha.split("=", 1)[1].strip()
+    if not chave and os.environ.get("CI"):
+        # Na publicação automática, criar uma chave nova mudaria o endereço de todas as páginas.
+        sys.exit("ALUMIA_CHAVE não configurada. Cadastre a chave nos segredos do repositório.")
     if not chave:
         chave = secrets.token_hex(32)
         with open(ARQUIVO_CHAVE, "a", encoding="utf-8") as arquivo:
