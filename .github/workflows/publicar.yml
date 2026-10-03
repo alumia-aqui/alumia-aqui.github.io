@@ -62,11 +62,10 @@ jobs:
 
       # Câmara e Senado: o próprio script decide o que baixar de novo (pela data do arquivo).
       - name: Recuperar dados da Câmara e do Senado
-        id: cache-parlamento
         uses: actions/cache/restore@v6
         with:
           path: pipeline/dados_brutos/parlamento
-          key: parlamento-${{ steps.semana.outputs.valor }}
+          key: parlamento-${{ github.run_id }}
           restore-keys: parlamento-
 
       # A eleição atual muda (situação das candidaturas, resultados): baixa sempre.
@@ -85,13 +84,14 @@ jobs:
           ALUMIA_CHAVE: ${{ secrets.ALUMIA_CHAVE }}
         run: python pipeline/gerar_parlamento.py
 
-      # Guarda o que foi baixado mesmo se o passo anterior falhar.
+      # Guarda o que foi baixado a cada execução, mesmo se o passo anterior falhar.
+      # O GitHub descarta sozinho os caches mais antigos.
       - name: Guardar dados da Câmara e do Senado
-        if: always() && steps.cache-parlamento.outputs.cache-hit != 'true'
+        if: always()
         uses: actions/cache/save@v6
         with:
           path: pipeline/dados_brutos/parlamento
-          key: parlamento-${{ steps.semana.outputs.valor }}
+          key: parlamento-${{ github.run_id }}
 
       - name: Gerar fotos dos candidatos
         run: |
