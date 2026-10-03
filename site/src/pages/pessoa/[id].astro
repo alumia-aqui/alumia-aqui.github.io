@@ -26,12 +26,26 @@ function descrever(c) {
 }
 const descricao = deAgora.map(descrever).join("; ");
 
-// Bens: a candidatura mais recente com bens conhecidos, e o total de cada eleição.
-const comBens = pessoa.candidaturas.filter((c) => c.bens != null);
-const bensAtuais = comBens[0];
-const evolucao = [...new Map(comBens.map((c) => [c.ano, c])).values()]
+// Bens: uma declaração por eleição. Se houver mais de uma candidatura no mesmo
+// ano, vale a apta; entre iguais, a que tem bens declarados.
+const melhor = (a, b) => {
+  const nota = (c) => [
+    (c.situacao_candidatura ?? "").toUpperCase() === "APTO" ? 1 : 0,
+    c.bens.length > 0 ? 1 : 0,
+    c.total_bens ?? 0,
+  ];
+  const [na, nb] = [nota(a), nota(b)];
+  for (let i = 0; i < na.length; i++) if (na[i] !== nb[i]) return na[i] > nb[i] ? a : b;
+  return a;
+};
+const porAno = new Map();
+for (const c of pessoa.candidaturas.filter((c) => c.bens != null)) {
+  porAno.set(c.ano, porAno.has(c.ano) ? melhor(porAno.get(c.ano), c) : c);
+}
+const evolucao = [...porAno.values()]
   .map((c) => ({ ano: c.ano, total: c.total_bens }))
   .sort((a, b) => b.ano - a.ano);
+const bensAtuais = evolucao.length ? porAno.get(evolucao[0].ano) : undefined;
 const maiorTotal = Math.max(1, ...evolucao.map((e) => e.total));
 
 const anteriores = [...new Set(pessoa.candidaturas.map((c) => c.ano))].sort((a, b) => b - a);

@@ -6,6 +6,9 @@ Regras do modelo:
   sem CPF nos dados abertos (ex.: 2024), a ligação usa o título de eleitor
   junto com a data de nascimento.
 - Candidaturas inaptas entram no histórico, com a situação informada.
+- Registro repetido: o TSE às vezes tem dois SQ_CANDIDATO para a mesma
+  candidatura (mesma pessoa, ano, cargo, local e número). Ficam unidos em um,
+  e os códigos de todos os registros ficam em registros_tse.
 - Bens: os declarados em cada candidatura, com tipo e valor. A descrição do
   bem fica de fora, porque costuma trazer endereço e número de conta.
 
@@ -163,6 +166,28 @@ def adicionar_bens(pessoas: dict[str, dict], anos: list[int]) -> None:
             c["total_bens"] = round(sum(b["valor"] or 0 for b in c["bens"]), 2)
 
 
+def prioridade(c: dict) -> tuple:
+    """Entre registros repetidos, fica o mais completo: apto, com bens, maior total."""
+    apto = (c["situacao_candidatura"] or "").upper() == "APTO"
+    return (apto, bool(c["bens"]), c["total_bens"] or 0, int(c["sq_candidato"] or 0))
+
+
+def unir_registros_repetidos(pessoa: dict) -> int:
+    grupos: dict[tuple, list[dict]] = {}
+    for c in pessoa["candidaturas"]:
+        chave = (c["ano"], c["cargo"], c["uf"], c["local"], c["numero"])
+        grupos.setdefault(chave, []).append(c)
+    unidas = []
+    repetidos = 0
+    for grupo in grupos.values():
+        escolhida = max(grupo, key=prioridade)
+        escolhida["registros_tse"] = sorted(c["sq_candidato"] for c in grupo)
+        repetidos += len(grupo) - 1
+        unidas.append(escolhida)
+    pessoa["candidaturas"] = unidas
+    return repetidos
+
+
 def main() -> None:
     anos = [int(a) for a in sys.argv[1:]] or ANOS_PADRAO
     ano_atual, historico = anos[0], anos[1:]
@@ -231,6 +256,12 @@ def main() -> None:
     # 4. Saída: um arquivo por pessoa e um índice para a busca.
     pasta_pessoas = PASTA_SAIDA / "pessoas"
     pasta_pessoas.mkdir(parents=True, exist_ok=True)
+    # Começa do zero a cada execução, para não sobrar arquivo de rodadas anteriores.
+    for antigo in pasta_pessoas.glob("*.json"):
+        antigo.unlink()
+    repetidos = sum(unir_registros_repetidos(p) for p in pessoas.values())
+    if repetidos:
+        print(f"Registros repetidos no TSE unidos: {repetidos}")
     indice = []
     for pessoa in pessoas.values():
         pessoa["candidaturas"].sort(key=lambda c: (c["ano"], c["sq_candidato"] or ""), reverse=True)
