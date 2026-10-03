@@ -107,6 +107,39 @@ def explorar(caminho_zip: Path) -> None:
         for formato, qtd in formatos:
             print(f"      formato '{formato}': {qtd}")
 
+    explorar_repetidos(linhas)
+
+
+def explorar_repetidos(linhas: list[dict]) -> None:
+    """Mostra por que o mesmo CPF aparece em mais de um registro, sem imprimir o CPF."""
+    if "NR_CPF_CANDIDATO" not in linhas[0]:
+        return
+    por_cpf: dict[str, list[dict]] = {}
+    for linha in linhas:
+        cpf = linha["NR_CPF_CANDIDATO"].strip()
+        if cpf and not cpf.startswith("-"):
+            por_cpf.setdefault(cpf, []).append(linha)
+
+    repetidos = [regs for regs in por_cpf.values() if len(regs) > 1]
+    print(f"\nCPFs em mais de um registro: {len(repetidos)}")
+    if not repetidos:
+        return
+
+    def campo(reg: dict, nome: str) -> str:
+        return reg.get(nome, "?").strip()
+
+    combinacoes = Counter()
+    for regs in repetidos:
+        partes = sorted(
+            f"{campo(r, 'DS_CARGO')} / {campo(r, 'DS_SITUACAO_CANDIDATURA')} / turno {campo(r, 'NR_TURNO')}"
+            for r in regs
+        )
+        combinacoes[" + ".join(partes)] += 1
+
+    print("Combinações mais comuns (cargo / situação / turno):")
+    for combinacao, qtd in combinacoes.most_common(10):
+        print(f"  {qtd}x  {combinacao}")
+
 
 def main() -> None:
     ano = int(sys.argv[1]) if len(sys.argv) > 1 else 2026
