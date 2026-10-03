@@ -65,23 +65,37 @@ def mostrar_json(titulo: str, url: str, caracteres: int = 1500) -> None:
 
 
 def main() -> None:
-    camara = "https://dadosabertos.camara.leg.br"
-    mostrar_csv("Câmara: deputados (todos os tempos)", f"{camara}/arquivos/deputados/csv/deputados.csv")
-    mostrar_json("Câmara: deputados da legislatura 57 (API)", f"{camara}/api/v2/deputados?idLegislatura=57&itens=2")
-    mostrar_json("Câmara: detalhe de um deputado (API)", f"{camara}/api/v2/deputados/204554")
-    mostrar_csv("Câmara: autores de proposições 2025", f"{camara}/arquivos/proposicoesAutores/csv/proposicoesAutores-2025.csv")
-    mostrar_csv("Câmara: proposições 2025", f"{camara}/arquivos/proposicoes/csv/proposicoes-2025.csv", linhas=1)
-    mostrar_csv("Câmara: cota parlamentar 2025", "https://www.camara.leg.br/cotas/Ano-2025.csv.zip", zipado=True, linhas=1)
-
     senado = "https://legis.senado.leg.br/dadosabertos"
-    mostrar_json("Senado: senadores da legislatura 57", f"{senado}/senador/lista/legislatura/57.json")
-    mostrar_json("Senado: detalhe de um senador", f"{senado}/senador/5012.json")
-    mostrar_json("Senado: autorias de um senador", f"{senado}/senador/5012/autorias.json")
+    # Arquivo CSV do Senado: aceitar qualquer tipo de conteúdo.
+    CABECALHO["Accept"] = "*/*"
     mostrar_csv(
         "Senado: cota parlamentar (CEAPS) 2025",
         "https://www.senado.leg.br/transparencia/LAI/verba/despesa_ceaps_2025.csv",
-        linhas=1,
+        linhas=2,
     )
+    CABECALHO["Accept"] = "application/json"
+    mostrar_json("Senado: processos de autoria (serviço novo)", f"{senado}/processo?codigoParlamentarAutor=5012&sigla=PL", 2500)
+    mostrar_json("Senado: processos, parâmetro alternativo", f"{senado}/processo?autor=Randolfe%20Rodrigues&sigla=PL", 1200)
+    mostrar_json("Senado: lista legislatura 55", f"{senado}/senador/lista/legislatura/55.json", 300)
+
+    # Câmara: o CPF vem preenchido na cota parlamentar? E na API, para quantos?
+    import collections
+    camara = "https://dadosabertos.camara.leg.br"
+    dados = baixar("https://www.camara.leg.br/cotas/Ano-2025.csv.zip")
+    with zipfile.ZipFile(io.BytesIO(dados)) as z:
+        texto = z.read(z.namelist()[0]).decode("utf-8-sig")
+    linhas = list(csv.DictReader(io.StringIO(texto), delimiter=";"))
+    deputados = {l["ideCadastro"]: l for l in linhas if l["ideCadastro"]}
+    com_cpf = sum(1 for l in deputados.values() if re.fullmatch(r"\d{11}", l["cpf"] or ""))
+    print(f"\n=== Cota 2025: {len(deputados)} deputados, {com_cpf} com CPF preenchido")
+    print("  categorias:", collections.Counter(l["txtDescricao"] for l in linhas).most_common(20))
+    ids = list(deputados)[:40]
+    preenchidos = 0
+    for id_ in ids:
+        d = json.loads(baixar(f"{camara}/api/v2/deputados/{id_}"))["dados"]
+        preenchidos += bool(re.fullmatch(r"\d{11}", d.get("cpf") or ""))
+    print(f"  API: {preenchidos} de {len(ids)} deputados com CPF no detalhe")
+    mostrar_json("Câmara: situações e tipos de proposição", f"{camara}/api/v2/referencias/proposicoes/codSituacao", 1500)
 
 
 if __name__ == "__main__":
