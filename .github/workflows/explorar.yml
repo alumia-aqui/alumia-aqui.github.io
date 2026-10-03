@@ -1,0 +1,27 @@
+# Roda um script de exploração de dados no GitHub, sob demanda (aba Actions).
+# Útil para fontes que não abrem do computador local ou para conferir dados no servidor.
+
+name: Explorar dados
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "Script em pipeline/ (ex.: explorar_parlamento.py)"
+        required: true
+        default: explorar_parlamento.py
+
+permissions:
+  contents: read
+
+jobs:
+  explorar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Rodar
+        run: python "pipeline/${{ inputs.script }}"

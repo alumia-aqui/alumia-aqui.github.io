@@ -6,6 +6,12 @@ name: Publicar site
 on:
   push:
     branches: [main]
+    # Mudanças que não alteram o site não disparam publicação.
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "pipeline/explorar_*.py"
+      - ".github/workflows/explorar.yml"
   schedule:
     - cron: "17 8 * * *" # 05:17 em Brasília
   workflow_dispatch:
