@@ -53,3 +53,16 @@ for p in sorted(com, key=lambda p: p["nome"])[::max(1, len(com) // 8)][:8]:
     print(f"    proposições: {par['proposicoes']['autor']} autor, {par['proposicoes']['coautor']} coautor | cota: {cota}")
     for r in par["proposicoes"]["recentes"][:1]:
         print(f"    mais recente: {r['identificacao']} ({r['data']}) {r['situacao']}")
+
+# Páginas da Câmara (legislatura atual).
+com_atuacao = [p for p in com if p["parlamento"].get("atuacao_camara")]
+print(f"\nCom dados da página da Câmara: {len(com_atuacao)}")
+campos = Counter()
+for p in com_atuacao:
+    for campo, valor in p["parlamento"]["atuacao_camara"][0].items():
+        if valor not in (None, 0):
+            campos[campo] += 1
+print("Campos preenchidos no ano mais recente:", dict(campos))
+for p in sorted(com_atuacao, key=lambda p: p["nome"])[:: max(1, len(com_atuacao) // 5)][:5]:
+    a = p["parlamento"]["atuacao_camara"][0]
+    print(f"- {p['nome']} {a['ano']}: plenário {a['presenca_plenario']}, imóvel {a['imovel_funcional']}, verba {a['verba_gabinete']}")

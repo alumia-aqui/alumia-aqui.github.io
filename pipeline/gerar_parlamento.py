@@ -4,6 +4,9 @@ Para cada pessoa candidata que foi deputada federal ou senadora:
 - Mandatos: casa, período, UF e partido (ou participação, no Senado).
 - Proposições: projetos de lei (PL, PLP), PECs e PDLs em que é autora ou coautora.
 - Cota parlamentar: gastos por ano e por categoria.
+- Deputados da legislatura atual: presença, salário, imóvel funcional,
+  auxílio-moradia, verba e pessoal de gabinete e viagens, lidos da página do
+  deputado no site da Câmara (camara_pagina.py), porque não estão nos dados abertos.
 
 Ligação com as pessoas do TSE:
 - Câmara: pelo CPF, que a API da Câmara publica no detalhe de cada deputado.
@@ -30,6 +33,7 @@ from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
+import camara_pagina
 import tse
 from gerar_pessoas import PASTA_SAIDA, carregar_chave, codigo_pessoa
 
@@ -131,7 +135,10 @@ def impressao(chave: bytes) -> str:
 
 
 def novo_registro() -> dict:
-    return {"mandatos": [], "perfis": [], "proposicoes": [], "cota": defaultdict(lambda: defaultdict(float))}
+    return {
+        "mandatos": [], "perfis": [], "proposicoes": [], "atuacao_camara": [],
+        "cota": defaultdict(lambda: defaultdict(float)),
+    }
 
 
 # ---------------------------------------------------------------- Câmara
@@ -178,6 +185,8 @@ def camara(chave: bytes, ids_pessoas: set[str], registros: dict) -> None:
             "casa": "Câmara dos Deputados",
             "url": f"https://www.camara.leg.br/deputados/{id_deputado}",
         })
+
+    paginas_camara(deputados, ligados, registros)
 
     # Proposições: autores de cada ano e, depois, os dados de cada proposição.
     for ano in ANOS:
@@ -226,6 +235,43 @@ def camara(chave: bytes, ids_pessoas: set[str], registros: dict) -> None:
             if id_pessoa and valor:
                 categoria = linha["txtDescricao"].strip().rstrip(".").strip()
                 registros[id_pessoa]["cota"][("Câmara dos Deputados", ano)][categoria] += valor
+
+
+def paginas_camara(deputados: dict, ligados: dict, registros: dict) -> None:
+    """Lê a página de cada deputado da legislatura atual, um ano por vez, desde o início dela."""
+    legislatura_atual = max(LEGISLATURAS)
+    inicio, _ = LEGISLATURAS[legislatura_atual]
+    pasta = PASTA / "camara_paginas"
+    pasta.mkdir(parents=True, exist_ok=True)
+    lidos, falhas = 0, []
+    for id_deputado, id_pessoa in ligados.items():
+        if not any(m["inicio"] == inicio for m in deputados[id_deputado]["mandatos"]):
+            continue
+        anos = []
+        for ano in range(inicio, ANO_ATUAL + 1):
+            destino = pasta / f"{id_deputado}_{ano}.json"
+            validade = 1 if ano >= ANO_ATUAL else 30
+            if destino.exists() and time.time() - destino.stat().st_mtime < validade * 86400:
+                dados = json.loads(destino.read_text(encoding="utf-8"))
+            else:
+                try:
+                    dados = camara_pagina.ler(camara_pagina.baixar(id_deputado, ano))
+                except Exception as erro:
+                    falhas.append(f"{deputados[id_deputado]['nome']} {ano}: {erro}")
+                    continue
+                destino.write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
+                lidos += 1
+                time.sleep(0.2)
+            if any(valor not in (None, 0) for valor in dados.values()):
+                anos.append({"ano": ano, **dados})
+        if anos:
+            registros[id_pessoa]["atuacao_camara"] = sorted(anos, key=lambda a: a["ano"], reverse=True)
+    com_presenca = sum(
+        1 for r in registros.values() if any(a.get("presenca_plenario") for a in r["atuacao_camara"])
+    )
+    print(f"  Páginas da Câmara: {lidos} lidas agora; {com_presenca} deputados com presença registrada")
+    if falhas:
+        print(f"  {len(falhas)} páginas não puderam ser lidas, por exemplo: {falhas[:3]}")
 
 
 # ---------------------------------------------------------------- Senado
@@ -385,6 +431,7 @@ def finalizar(registro: dict) -> dict:
             "recentes": autor[:RECENTES],
         },
         "cota": cota,
+        "atuacao_camara": registro["atuacao_camara"],
     }
 
 
