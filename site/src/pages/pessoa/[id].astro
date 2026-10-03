@@ -1,0 +1,159 @@
+---
+import Base from "../../layouts/Base.astro";
+import { carregarPessoas, anoAtual } from "../../lib/dados.js";
+import {
+  nomeProprio, minusculo, primeiraMaiuscula, localCandidatura,
+  resultado, situacao, idade, nomeExibido, nomeUf,
+} from "../../lib/texto.js";
+
+export function getStaticPaths() {
+  const pessoas = carregarPessoas();
+  const atual = anoAtual(pessoas);
+  return pessoas.map((pessoa) => ({ params: { id: pessoa.id }, props: { pessoa, atual } }));
+}
+
+const { pessoa, atual } = Astro.props;
+const deAgora = pessoa.candidaturas.filter((c) => c.ano === atual);
+const recente = deAgora[0] ?? pessoa.candidaturas[0];
+const nome = nomeExibido(recente, pessoa);
+const anos = idade(pessoa.data_nascimento);
+
+function descrever(c) {
+  const partes = [`${primeiraMaiuscula(minusculo(c.cargo))} ${localCandidatura(c)}`];
+  if (c.numero) partes.push(`número ${c.numero}`);
+  if (c.partido?.sigla) partes.push(`partido ${c.partido.sigla}`);
+  return partes.join(", ");
+}
+const descricao = deAgora.map(descrever).join("; ");
+
+const anteriores = [...new Set(pessoa.candidaturas.map((c) => c.ano))].sort((a, b) => b - a);
+const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${ano}`;
+---
+<Base
+  titulo={`${nome}: Retrato no Alumia Aqui`}
+  descricao={`Dados públicos e oficiais de ${nome}. ${descricao}.`}
+>
+  <article class="conteudo retrato">
+    <header data-pagefind-body>
+      <p class="tipo">Retrato</p>
+      <h1 data-pagefind-meta="title">{nome}</h1>
+      {nomeProprio(pessoa.nome) !== nome && (
+        <p class="nome-civil">{nomeProprio(pessoa.nome)}</p>
+      )}
+      <p class="descricao" data-pagefind-meta="descricao">{descricao}</p>
+      {deAgora.length > 1 && (
+        <p class="observacao">
+          Esta pessoa registrou {deAgora.length} candidaturas em {atual}. Normalmente só uma segue na disputa.
+        </p>
+      )}
+    </header>
+
+    <p class="aviso-fontes">
+      Tudo nesta página vem de fontes oficiais, indicadas em cada seção.
+      Não fazemos avaliação de candidatos.
+    </p>
+
+    <section>
+      <h2>Quem é</h2>
+      <dl class="ficha">
+        <div><dt>Nome completo</dt><dd>{nomeProprio(pessoa.nome)}</dd></div>
+        {anos !== null && <div><dt>Idade</dt><dd>{anos} anos</dd></div>}
+        {pessoa.uf_nascimento && <div><dt>Nasceu em</dt><dd>{nomeUf(pessoa.uf_nascimento)}</dd></div>}
+        {recente.escolaridade && <div><dt>Escolaridade declarada</dt><dd>{primeiraMaiuscula(minusculo(recente.escolaridade))}</dd></div>}
+        {recente.ocupacao && <div><dt>Ocupação declarada</dt><dd>{primeiraMaiuscula(minusculo(recente.ocupacao))}</dd></div>}
+      </dl>
+      <p class="fonte">Fonte: <a href={fonteTse(recente.ano)}>TSE, candidatos de {recente.ano}</a>. Informações declaradas pelo próprio candidato.</p>
+    </section>
+
+    <section>
+      <h2>Quais eleições já disputou?</h2>
+      <p class="explica">Todas as candidaturas registradas no TSE desde 2014, da mais recente para a mais antiga.</p>
+      <ol class="linha-do-tempo">
+        {pessoa.candidaturas.map((c) => (
+          <li>
+            <p class="ano">{c.ano}</p>
+            <div class="evento">
+              <h3>{primeiraMaiuscula(minusculo(c.cargo))} {localCandidatura(c)}</h3>
+              <p>
+                {c.partido?.sigla && <>Partido {c.partido.sigla}{c.partido.nome && ` (${nomeProprio(c.partido.nome)})`}</>}
+                {c.numero && <>, número {c.numero}</>}
+              </p>
+              {situacao(c.situacao_candidatura) && <p>{situacao(c.situacao_candidatura)}</p>}
+              {c.turnos.filter((t) => resultado(t.resultado)).map((t) => (
+                <p class="resultado">
+                  {c.turnos.length > 1 && `${t.turno}º turno: `}{resultado(t.resultado)}
+                </p>
+              ))}
+              {c.ano === atual && !c.turnos.some((t) => resultado(t.resultado)) && (
+                <p class="resultado">Eleição ainda não apurada</p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p class="fonte">
+        Fonte: TSE, dados abertos de candidatos ({anteriores.map((ano, i) => (
+          <>{i > 0 && ", "}<a href={fonteTse(ano)}>{ano}</a></>
+        ))}).
+      </p>
+    </section>
+
+    <section>
+      <h2>O que ainda não está aqui</h2>
+      <p>
+        Bens declarados, contas de campanha, mandatos exercidos, processos e sanções ainda
+        não foram incluídos no Alumia Aqui. A ausência dessas informações nesta página não
+        significa que elas não existam.
+      </p>
+    </section>
+  </article>
+</Base>
+
+<style>
+  .retrato { padding-top: 1.75rem; padding-bottom: 2.5rem; }
+  .tipo { color: var(--tinta-suave); font-weight: 700; }
+  h1 { font-size: clamp(2rem, 7vw, 2.8rem); letter-spacing: -0.015em; margin-top: 0.15rem; }
+  .nome-civil { font-size: 1.15rem; margin-top: 0.25rem; }
+  .descricao { font-size: 1.15rem; margin-top: 0.75rem; }
+  .observacao { margin-top: 0.5rem; color: var(--tinta-suave); }
+
+  .aviso-fontes {
+    margin: 1.5rem 0 0;
+    padding: 0.9rem 1.1rem;
+    background: var(--luz);
+    border-radius: var(--raio);
+  }
+
+  section { margin-top: 2.25rem; }
+  h2 { font-size: 1.45rem; margin-bottom: 0.75rem; }
+  .explica { color: var(--tinta-suave); margin-bottom: 1rem; }
+  .fonte { margin-top: 1rem; font-size: 0.9rem; color: var(--tinta-suave); }
+  .fonte a { color: var(--tinta-suave); }
+
+  .ficha { margin: 0; display: grid; gap: 0.6rem; }
+  .ficha div { display: grid; grid-template-columns: minmax(9rem, 14rem) 1fr; gap: 0.25rem 1rem; }
+  .ficha dt { color: var(--tinta-suave); }
+  .ficha dd { margin: 0; font-weight: 700; }
+  @media (max-width: 30rem) { .ficha div { grid-template-columns: 1fr; gap: 0; } }
+
+  /* A linha do tempo: um trilho à esquerda, um ponto por eleição */
+  .linha-do-tempo { list-style: none; margin: 0; padding: 0; }
+  .linha-do-tempo li {
+    display: grid; grid-template-columns: 4rem 1fr; gap: 1rem;
+    position: relative; padding-bottom: 1.25rem;
+  }
+  .linha-do-tempo li::before {
+    content: ""; position: absolute; left: 4.45rem; top: 0.5rem; bottom: -0.5rem;
+    width: 3px; background: var(--borda);
+  }
+  .linha-do-tempo li:last-child::before { display: none; }
+  .ano { font-weight: 700; font-size: 1.15rem; }
+  .evento { position: relative; padding-left: 1.1rem; }
+  .evento::before {
+    content: ""; position: absolute; left: -0.95rem; top: 0.45rem;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--luz-forte); border: 3px solid var(--noite);
+  }
+  h3 { font-size: 1.1rem; }
+  .resultado { font-weight: 700; }
+</style>
