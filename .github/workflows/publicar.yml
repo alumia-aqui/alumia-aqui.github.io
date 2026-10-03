@@ -93,6 +93,13 @@ jobs:
           path: pipeline/dados_brutos/parlamento
           key: parlamento-${{ github.run_id }}
 
+      # Se falhar, o site sai sem a seção de sanções, mas com o resto atualizado.
+      - name: Juntar sanções (CGU)
+        continue-on-error: true
+        env:
+          ALUMIA_CHAVE: ${{ secrets.ALUMIA_CHAVE }}
+        run: python pipeline/gerar_sancoes.py
+
       - name: Gerar fotos dos candidatos
         run: |
           pip install pillow
