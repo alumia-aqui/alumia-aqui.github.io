@@ -62,7 +62,8 @@ jobs:
 
       # Câmara e Senado: o próprio script decide o que baixar de novo (pela data do arquivo).
       - name: Recuperar dados da Câmara e do Senado
-        uses: actions/cache@v6
+        id: cache-parlamento
+        uses: actions/cache/restore@v6
         with:
           path: pipeline/dados_brutos/parlamento
           key: parlamento-${{ steps.semana.outputs.valor }}
@@ -77,10 +78,20 @@ jobs:
           ALUMIA_CHAVE: ${{ secrets.ALUMIA_CHAVE }}
         run: python pipeline/gerar_pessoas.py
 
+      # Se falhar, o site sai sem a seção do Congresso, mas com o resto atualizado.
       - name: Juntar mandatos na Câmara e no Senado
+        continue-on-error: true
         env:
           ALUMIA_CHAVE: ${{ secrets.ALUMIA_CHAVE }}
         run: python pipeline/gerar_parlamento.py
+
+      # Guarda o que foi baixado mesmo se o passo anterior falhar.
+      - name: Guardar dados da Câmara e do Senado
+        if: always() && steps.cache-parlamento.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: pipeline/dados_brutos/parlamento
+          key: parlamento-${{ steps.semana.outputs.valor }}
 
       - name: Gerar fotos dos candidatos
         run: |

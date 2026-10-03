@@ -16,6 +16,7 @@ Rodar depois de gerar_pessoas.py:  python pipeline/gerar_parlamento.py
 
 import csv
 import hashlib
+import http.client
 import hmac
 import io
 import json
@@ -63,7 +64,8 @@ def pedir(url: str, aceitar: str = "application/json", tentativas: int = 4) -> b
         except urllib.error.HTTPError as erro:
             if erro.code == 404 or tentativa == tentativas - 1:
                 raise
-        except (urllib.error.URLError, TimeoutError):
+        except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError):
+            # Inclui resposta cortada no meio (IncompleteRead).
             if tentativa == tentativas - 1:
                 raise
         time.sleep(2 ** tentativa)
@@ -280,6 +282,7 @@ def senado(pessoas: list[dict], registros: dict) -> None:
             ligados[codigo] = por_nome_e_nascimento[chave]
     print(f"  {len(ligados)} senadores são candidatos agora (ligados por nome completo e nascimento)")
 
+    falhas: list[str] = []
     for codigo, id_pessoa in ligados.items():
         registro = registros.setdefault(id_pessoa, novo_registro())
         registro["mandatos"].extend(senadores[codigo]["mandatos"].values())
@@ -291,7 +294,8 @@ def senado(pessoas: list[dict], registros: dict) -> None:
         for sigla in TIPOS:
             try:
                 materias = pedir_json(f"{SENADO}/processo?codigoParlamentarAutor={codigo}&sigla={sigla}")
-            except urllib.error.HTTPError:
+            except Exception as erro:  # uma consulta com falha não derruba as demais
+                falhas.append(f"{senadores[codigo]['nome']} ({sigla}): {erro}")
                 continue
             for m in materias:
                 data = (m.get("dataApresentacao") or "")[:10]
@@ -310,6 +314,11 @@ def senado(pessoas: list[dict], registros: dict) -> None:
                     "url": f"https://www25.senado.leg.br/web/atividade/materias/-/materia/{m.get('codigoMateria')}",
                 })
             time.sleep(0.05)
+
+    if falhas:
+        print(f"  {len(falhas)} consultas de proposições falharam e ficaram de fora:")
+        for falha in falhas[:10]:
+            print(f"    {falha}")
 
     # Cota parlamentar (CEAPS). A primeira linha do arquivo é a data de atualização.
     por_nome = {normalizar(senadores[c]["nome"]): p for c, p in ligados.items()}
