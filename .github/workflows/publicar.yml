@@ -60,6 +60,14 @@ jobs:
           path: pipeline/dados_brutos/fotos
           key: tse-fotos-${{ steps.semana.outputs.valor }}
 
+      # Câmara e Senado: o próprio script decide o que baixar de novo (pela data do arquivo).
+      - name: Recuperar dados da Câmara e do Senado
+        uses: actions/cache@v6
+        with:
+          path: pipeline/dados_brutos/parlamento
+          key: parlamento-${{ steps.semana.outputs.valor }}
+          restore-keys: parlamento-
+
       # A eleição atual muda (situação das candidaturas, resultados): baixa sempre.
       - name: Descartar arquivos da eleição atual
         run: rm -f pipeline/dados_brutos/*_2026.zip
@@ -68,6 +76,11 @@ jobs:
         env:
           ALUMIA_CHAVE: ${{ secrets.ALUMIA_CHAVE }}
         run: python pipeline/gerar_pessoas.py
+
+      - name: Juntar mandatos na Câmara e no Senado
+        env:
+          ALUMIA_CHAVE: ${{ secrets.ALUMIA_CHAVE }}
+        run: python pipeline/gerar_parlamento.py
 
       - name: Gerar fotos dos candidatos
         run: |

@@ -1,4 +1,4 @@
-# Roda um script de exploração de dados no GitHub, sob demanda (aba Actions).
+# Roda um comando de exploração de dados no GitHub, sob demanda (aba Actions).
 # A saída fica no arquivo saida.txt do ramo "exploracao", separado do código.
 
 name: Explorar dados
@@ -6,10 +6,10 @@ name: Explorar dados
 on:
   workflow_dispatch:
     inputs:
-      script:
-        description: "Script em pipeline/ (ex.: explorar_parlamento.py)"
+      comando:
+        description: "Comando a rodar (ex.: python pipeline/explorar_parlamento.py)"
         required: true
-        default: explorar_parlamento.py
+        default: python pipeline/explorar_parlamento.py
 
 permissions:
   contents: write
@@ -17,14 +17,26 @@ permissions:
 jobs:
   explorar:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
+      # Reaproveita os dados já baixados pela publicação (só leitura).
+      - uses: actions/cache/restore@v6
+        with:
+          path: pipeline/dados_brutos
+          key: tse-historico-v1
+      - uses: actions/cache/restore@v6
+        with:
+          path: pipeline/dados_brutos/parlamento
+          key: parlamento-
+          restore-keys: parlamento-
       - name: Rodar
-        run: python "pipeline/${{ inputs.script }}" 2>&1 | tee /tmp/saida.txt
+        env:
+          ALUMIA_CHAVE: ${{ secrets.ALUMIA_CHAVE }}
+        run: bash -c "${{ inputs.comando }}" 2>&1 | tee /tmp/saida.txt
       - name: Guardar a saída no ramo exploracao
         if: always()
         run: |
@@ -34,5 +46,5 @@ jobs:
           git rm -rq --cached .
           cp /tmp/saida.txt saida.txt
           git add saida.txt
-          git commit -qm "Saída de ${{ inputs.script }}"
+          git commit -qm "Saída da exploração"
           git push -qf origin exploracao
