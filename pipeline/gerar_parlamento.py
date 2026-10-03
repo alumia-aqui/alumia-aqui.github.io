@@ -230,6 +230,17 @@ def camara(chave: bytes, ids_pessoas: set[str], registros: dict) -> None:
 
 # ---------------------------------------------------------------- Senado
 
+def materias_senado(codigo: str, sigla: str) -> list:
+    """Proposições de um senador, guardadas por uma semana (a consulta é lenta)."""
+    destino = PASTA / "senado_materias" / f"{codigo}_{sigla}.json"
+    if destino.exists() and time.time() - destino.stat().st_mtime < 7 * 86400:
+        return json.loads(destino.read_text(encoding="utf-8"))
+    materias = pedir_json(f"{SENADO}/processo?codigoParlamentarAutor={codigo}&sigla={sigla}")
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    destino.write_text(json.dumps(materias, ensure_ascii=False), encoding="utf-8")
+    return materias
+
+
 def senado(pessoas: list[dict], registros: dict) -> None:
     print("\nSenado Federal")
     senadores: dict[str, dict] = {}
@@ -293,7 +304,7 @@ def senado(pessoas: list[dict], registros: dict) -> None:
         nome = normalizar(senadores[codigo]["nome"])
         for sigla in TIPOS:
             try:
-                materias = pedir_json(f"{SENADO}/processo?codigoParlamentarAutor={codigo}&sigla={sigla}")
+                materias = materias_senado(codigo, sigla)
             except Exception as erro:  # uma consulta com falha não derruba as demais
                 falhas.append(f"{senadores[codigo]['nome']} ({sigla}): {erro}")
                 continue
@@ -313,7 +324,6 @@ def senado(pessoas: list[dict], registros: dict) -> None:
                     "principal": primeiro.endswith(nome),
                     "url": f"https://www25.senado.leg.br/web/atividade/materias/-/materia/{m.get('codigoMateria')}",
                 })
-            time.sleep(0.05)
 
     if falhas:
         print(f"  {len(falhas)} consultas de proposições falharam e ficaram de fora:")
