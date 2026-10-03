@@ -2,7 +2,9 @@
 
 Regras do modelo:
 - Candidatura: um SQ_CANDIDATO, com um ou dois turnos.
-- Pessoa: todas as candidaturas com o mesmo CPF, em qualquer eleição.
+- Pessoa: todas as candidaturas com o mesmo CPF, em qualquer eleição. Nos anos
+  sem CPF nos dados abertos (ex.: 2024), a ligação usa o título de eleitor
+  junto com a data de nascimento.
 - Candidaturas inaptas entram no histórico, com a situação informada.
 
 O CPF é usado só aqui, para ligar os registros. Nos arquivos gerados, cada
@@ -36,7 +38,8 @@ PASTA_SAIDA = Path(__file__).parent / "saida"
 ANOS_PADRAO = [2026, 2024, 2022, 2020, 2018, 2016, 2014]
 
 # Campos que nunca saem do pipeline: CPF, título de eleitor e e-mail.
-# Cor/raça, gênero e estado civil ficam de fora até decidirmos se entram no Retrato.
+# Cor/raça, gênero e estado civil também ficam de fora: não dizem nada sobre a
+# conduta pública da pessoa.
 
 
 def carregar_chave() -> bytes:
@@ -108,6 +111,8 @@ def main() -> None:
 
     # 1. Pessoas da eleição atual, indexadas pelo CPF (só em memória).
     pessoas: dict[str, dict] = {}
+    titulos: dict[str, str] = {}  # título de eleitor -> CPF
+    titulo_do_cpf: dict[str, str] = {}
     sem_cpf = 0
     for linha in ler_candidatos(ano_atual):
         cpf = cpf_valido(linha)
@@ -122,17 +127,39 @@ def main() -> None:
             "candidaturas": [],
         })
         adicionar_linha(pessoa, linha)
+        titulo = limpar(linha.get("NR_TITULO_ELEITORAL_CANDIDATO"))
+        if titulo:
+            titulos[titulo] = cpf
+            titulo_do_cpf[cpf] = titulo
     print(f"{ano_atual}: {len(pessoas)} pessoas ({sem_cpf} registros sem CPF ficaram de fora)")
 
     # 2. Histórico: só as linhas de quem é candidato na eleição atual.
+    # Liga pelo CPF. Sem CPF (ex.: 2024), liga pelo título de eleitor, desde que
+    # a data de nascimento também seja a mesma.
     for ano in historico:
-        encontradas = set()
+        por_cpf, por_titulo, titulo_divergente = set(), set(), 0
         for linha in ler_candidatos(ano):
             cpf = cpf_valido(linha)
-            if cpf in pessoas:
+            titulo = limpar(linha.get("NR_TITULO_ELEITORAL_CANDIDATO"))
+            if cpf:
+                if cpf not in pessoas:
+                    continue
+                if titulo and titulo_do_cpf.get(cpf) and titulo != titulo_do_cpf[cpf]:
+                    titulo_divergente += 1
                 adicionar_linha(pessoas[cpf], linha)
-                encontradas.add(cpf)
-        print(f"{ano}: {len(encontradas)} pessoas com candidatura nesse ano")
+                por_cpf.add(cpf)
+            elif titulo in titulos:
+                cpf = titulos[titulo]
+                if limpar(linha.get("DT_NASCIMENTO")) != pessoas[cpf]["data_nascimento"]:
+                    continue
+                adicionar_linha(pessoas[cpf], linha)
+                por_titulo.add(cpf)
+        resumo = f"{ano}: {len(por_cpf | por_titulo)} pessoas com candidatura nesse ano"
+        if por_titulo:
+            resumo += f" ({len(por_titulo)} ligadas pelo título de eleitor)"
+        if titulo_divergente:
+            resumo += f" - {titulo_divergente} registros com mesmo CPF e título diferente"
+        print(resumo)
 
     # 3. Saída: um arquivo por pessoa e um índice para a busca.
     pasta_pessoas = PASTA_SAIDA / "pessoas"
