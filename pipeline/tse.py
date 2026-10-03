@@ -44,13 +44,11 @@ def valor_em_reais(texto: str | None) -> float | None:
         return None
 
 
-def baixar(conjunto: str, ano: int) -> Path:
-    PASTA_DADOS.mkdir(exist_ok=True)
-    destino = PASTA_DADOS / f"{conjunto}_{ano}.zip"
+def baixar_url(url: str, destino: Path) -> Path:
+    """Baixa url para destino, mostrando o progresso. Não baixa de novo se já existe."""
     if destino.exists():
         return destino
-
-    url = URL_CONJUNTO.format(conjunto=conjunto, ano=ano)
+    destino.parent.mkdir(parents=True, exist_ok=True)
     print(f"Baixando {url}")
     temporario = destino.with_suffix(".parcial")
     try:
@@ -70,6 +68,11 @@ def baixar(conjunto: str, ano: int) -> Path:
     print()
     temporario.rename(destino)  # só vira arquivo final se o download terminou
     return destino
+
+
+def baixar(conjunto: str, ano: int) -> Path:
+    url = URL_CONJUNTO.format(conjunto=conjunto, ano=ano)
+    return baixar_url(url, PASTA_DADOS / f"{conjunto}_{ano}.zip")
 
 
 def ler(conjunto: str, ano: int) -> Iterator[dict]:

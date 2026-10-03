@@ -1,6 +1,7 @@
 ---
 import Base from "../../layouts/Base.astro";
-import { carregarPessoas, anoAtual } from "../../lib/dados.js";
+import { carregarPessoas, anoAtual, temFoto } from "../../lib/dados.js";
+import { caminho } from "../../lib/caminho.js";
 import {
   nomeProprio, minusculo, primeiraMaiuscula, localCandidatura,
   resultado, situacao, idade, nomeExibido, nomeUf, reais, bensPorTipo,
@@ -17,6 +18,8 @@ const deAgora = pessoa.candidaturas.filter((c) => c.ano === atual);
 const recente = deAgora[0] ?? pessoa.candidaturas[0];
 const nome = nomeExibido(recente, pessoa);
 const anos = idade(pessoa.data_nascimento);
+const foto = temFoto(pessoa.id) ? caminho(`fotos/${pessoa.id}.jpg`) : null;
+const fotoCompleta = foto && Astro.site ? new URL(foto, Astro.site).href : undefined;
 
 function descrever(c) {
   const partes = [`${primeiraMaiuscula(minusculo(c.cargo))} ${localCandidatura(c)}`];
@@ -54,9 +57,21 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
 <Base
   titulo={`${nome}: Retrato no Alumia Aqui`}
   descricao={`Dados públicos e oficiais de ${nome}. ${descricao}.`}
+  imagem={fotoCompleta}
 >
   <article class="conteudo retrato">
-    <header data-pagefind-body>
+    <header class="cabecalho" data-pagefind-body>
+      {foto && (
+        <img
+          class="foto"
+          src={foto}
+          width="180"
+          height="240"
+          alt={`Foto de ${nome} entregue ao TSE`}
+          data-pagefind-meta="image[src]"
+        />
+      )}
+      <div>
       <p class="tipo">Retrato</p>
       <h1 data-pagefind-meta="title">{nome}</h1>
       {nomeProprio(pessoa.nome) !== nome && (
@@ -68,6 +83,7 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
           Esta pessoa registrou {deAgora.length} candidaturas em {atual}. Normalmente só uma segue na disputa.
         </p>
       )}
+      </div>
     </header>
 
     <p class="aviso-fontes">
@@ -84,7 +100,7 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
         {recente.escolaridade && <div><dt>Escolaridade declarada</dt><dd>{primeiraMaiuscula(minusculo(recente.escolaridade))}</dd></div>}
         {recente.ocupacao && <div><dt>Ocupação declarada</dt><dd>{primeiraMaiuscula(minusculo(recente.ocupacao))}</dd></div>}
       </dl>
-      <p class="fonte">Fonte: <a href={fonteTse(recente.ano)}>TSE, candidatos de {recente.ano}</a>. Informações declaradas pelo próprio candidato.</p>
+      <p class="fonte">Fonte: <a href={fonteTse(recente.ano)}>TSE, candidatos de {recente.ano}</a>. Informações declaradas pelo próprio candidato.{foto && " A foto é a entregue ao TSE no registro da candidatura."}</p>
     </section>
 
     {bensAtuais && (
@@ -176,6 +192,13 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
 
 <style>
   .retrato { padding-top: 1.75rem; padding-bottom: 2.5rem; }
+  .cabecalho { display: flex; gap: 1.25rem; align-items: flex-start; }
+  .foto {
+    flex: 0 0 auto; width: 7.5rem; height: 10rem; object-fit: cover;
+    border-radius: var(--raio); background: var(--borda);
+    box-shadow: 0 0 0 4px var(--luz);
+  }
+  @media (max-width: 30rem) { .foto { width: 5.5rem; height: 7.33rem; } .cabecalho { gap: 1rem; } }
   .tipo { color: var(--tinta-suave); font-weight: 700; }
   h1 { font-size: clamp(2rem, 7vw, 2.8rem); letter-spacing: -0.015em; margin-top: 0.15rem; }
   .nome-civil { font-size: 1.15rem; margin-top: 0.25rem; }

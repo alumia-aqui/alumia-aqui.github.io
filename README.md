@@ -24,6 +24,7 @@ O eleitor digita o nome do candidato, confirma a pessoa certa numa lista com fot
 Pré-requisitos: Python 3.14 e Node.js 24.
 
 - **Gerar os dados:** `python pipeline/gerar_pessoas.py`. Baixa os arquivos do TSE e gera um JSON por pessoa em pipeline/saida/. Na primeira vez cria a chave em .env, que precisa ser guardada.
+- **Gerar as fotos:** `pip install pillow` uma vez, depois `python pipeline/gerar_fotos.py`. Opcional: sem fotos, o site funciona normalmente.
 - **Instalar o site:** `npm install`, dentro de site/.
 - **Ver o site:** `npm run build` e depois `npm run preview`, dentro de site/. A busca só funciona depois do build, porque o índice é gerado nele.
 
@@ -39,9 +40,9 @@ Pré-requisitos: Python 3.14 e Node.js 24.
 
 ## 4 - Fontes de dados
 
-Fase atual: dados do TSE (candidaturas e bens declarados).
+Fase atual: dados do TSE (candidaturas, bens declarados e fotos).
 
-Próximas do TSE: fotos, certidões e contas de campanha.
+Próximas do TSE: certidões e contas de campanha.
 
 Previstas: APIs da Câmara e do Senado, CGU/Portal da Transparência, TCU, CNJ, CNPJ da Receita Federal, PNCP e Obrasgov.
 
