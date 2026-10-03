@@ -6,6 +6,8 @@ Regras do modelo:
   sem CPF nos dados abertos (ex.: 2024), a ligação usa o título de eleitor
   junto com a data de nascimento.
 - Candidaturas inaptas entram no histórico, com a situação informada.
+- Bens: os declarados em cada candidatura, com tipo e valor. A descrição do
+  bem fica de fora, porque costuma trazer endereço e número de conta.
 
 O CPF é usado só aqui, para ligar os registros. Nos arquivos gerados, cada
 pessoa recebe um código derivado do CPF com uma chave secreta (HMAC). Sem a
@@ -28,7 +30,7 @@ import secrets
 import sys
 from pathlib import Path
 
-from tse import ler_candidatos, limpar
+from tse import ArquivoInexistente, baixar, ler_bens, ler_candidatos, limpar, valor_em_reais
 
 RAIZ = Path(__file__).parent.parent
 ARQUIVO_CHAVE = RAIZ / ".env"
@@ -104,6 +106,63 @@ def adicionar_linha(pessoa: dict, linha: dict) -> None:
     })
 
 
+def adicionar_bens(pessoas: dict[str, dict], anos: list[int]) -> None:
+    """Junta os bens a cada candidatura, pelo ano e pelo SQ_CANDIDATO.
+
+    bens = None: o arquivo do ano não foi lido (não se sabe).
+    bens = []: o arquivo foi lido e não há bens declarados nessa candidatura.
+    """
+    candidaturas = {}
+    for pessoa in pessoas.values():
+        for c in pessoa["candidaturas"]:
+            c["bens"] = None
+            c["total_bens"] = None
+            candidaturas[(c["ano"], c["sq_candidato"])] = c
+
+    for ano in anos:
+        try:
+            baixar("bem_candidato", ano)
+        except ArquivoInexistente:
+            print(f"Bens {ano}: arquivo não publicado pelo TSE")
+            continue
+
+        do_ano = {sq: c for (a, sq), c in candidaturas.items() if a == ano}
+        colunas_ok = None
+        com_bens = set()
+        for linha in ler_bens(ano):
+            if colunas_ok is None:
+                faltando = {"SQ_CANDIDATO", "VR_BEM_CANDIDATO"} - set(linha)
+                colunas_ok = not faltando
+                if faltando:
+                    print(f"Bens {ano}: colunas esperadas não encontradas {faltando}.")
+                    print(f"  Colunas do arquivo: {', '.join(linha)}")
+                    break
+            sq = limpar(linha.get("SQ_CANDIDATO"))
+            c = do_ano.get(sq)
+            if c is None:
+                continue
+            if c["bens"] is None:
+                c["bens"] = []
+            c["bens"].append({
+                "tipo": limpar(linha.get("DS_TIPO_BEM_CANDIDATO")),
+                "valor": valor_em_reais(linha.get("VR_BEM_CANDIDATO")),
+            })
+            com_bens.add(sq)
+
+        if colunas_ok is False:
+            continue
+        # Arquivo lido por inteiro: quem não aparece nele não declarou bens.
+        for c in do_ano.values():
+            if c["bens"] is None:
+                c["bens"] = []
+        print(f"Bens {ano}: {len(com_bens)} candidaturas com bens declarados")
+
+    for c in candidaturas.values():
+        if c["bens"] is not None:
+            c["bens"].sort(key=lambda b: b["valor"] or 0, reverse=True)
+            c["total_bens"] = round(sum(b["valor"] or 0 for b in c["bens"]), 2)
+
+
 def main() -> None:
     anos = [int(a) for a in sys.argv[1:]] or ANOS_PADRAO
     ano_atual, historico = anos[0], anos[1:]
@@ -138,6 +197,11 @@ def main() -> None:
     # a data de nascimento também seja a mesma.
     for ano in historico:
         por_cpf, por_titulo, titulo_divergente = set(), set(), 0
+        try:
+            baixar("consulta_cand", ano)
+        except ArquivoInexistente:
+            print(f"{ano}: arquivo de candidatos não publicado pelo TSE")
+            continue
         for linha in ler_candidatos(ano):
             cpf = cpf_valido(linha)
             titulo = limpar(linha.get("NR_TITULO_ELEITORAL_CANDIDATO"))
@@ -161,7 +225,10 @@ def main() -> None:
             resumo += f" - {titulo_divergente} registros com mesmo CPF e título diferente"
         print(resumo)
 
-    # 3. Saída: um arquivo por pessoa e um índice para a busca.
+    # 3. Bens declarados em cada candidatura.
+    adicionar_bens(pessoas, anos)
+
+    # 4. Saída: um arquivo por pessoa e um índice para a busca.
     pasta_pessoas = PASTA_SAIDA / "pessoas"
     pasta_pessoas.mkdir(parents=True, exist_ok=True)
     indice = []

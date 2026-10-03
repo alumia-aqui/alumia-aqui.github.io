@@ -3,7 +3,7 @@ import Base from "../../layouts/Base.astro";
 import { carregarPessoas, anoAtual } from "../../lib/dados.js";
 import {
   nomeProprio, minusculo, primeiraMaiuscula, localCandidatura,
-  resultado, situacao, idade, nomeExibido, nomeUf,
+  resultado, situacao, idade, nomeExibido, nomeUf, reais, bensPorTipo,
 } from "../../lib/texto.js";
 
 export function getStaticPaths() {
@@ -25,6 +25,14 @@ function descrever(c) {
   return partes.join(", ");
 }
 const descricao = deAgora.map(descrever).join("; ");
+
+// Bens: a candidatura mais recente com bens conhecidos, e o total de cada eleição.
+const comBens = pessoa.candidaturas.filter((c) => c.bens != null);
+const bensAtuais = comBens[0];
+const evolucao = [...new Map(comBens.map((c) => [c.ano, c])).values()]
+  .map((c) => ({ ano: c.ano, total: c.total_bens }))
+  .sort((a, b) => b.ano - a.ano);
+const maiorTotal = Math.max(1, ...evolucao.map((e) => e.total));
 
 const anteriores = [...new Set(pessoa.candidaturas.map((c) => c.ano))].sort((a, b) => b - a);
 const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${ano}`;
@@ -65,6 +73,49 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
       <p class="fonte">Fonte: <a href={fonteTse(recente.ano)}>TSE, candidatos de {recente.ano}</a>. Informações declaradas pelo próprio candidato.</p>
     </section>
 
+    {bensAtuais && (
+      <section>
+        <h2>Quanto declarou de bens?</h2>
+        {bensAtuais.bens.length === 0 ? (
+          <p>Não declarou bens ao registrar a candidatura de {bensAtuais.ano}.</p>
+        ) : (
+          <>
+            <p class="total-bens">{reais(bensAtuais.total_bens)}</p>
+            <p class="explica">
+              Total declarado na candidatura de {bensAtuais.ano}, em {bensAtuais.bens.length}
+              {bensAtuais.bens.length === 1 ? " item" : " itens"}.
+            </p>
+            <ul class="bens">
+              {bensPorTipo(bensAtuais.bens).map((g) => (
+                <li>
+                  <span>{g.tipo}{g.quantidade > 1 && ` (${g.quantidade})`}</span>
+                  <span class="valor">{reais(g.valor)}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {evolucao.length > 1 && (
+          <>
+            <h3 class="sub">Total declarado em cada eleição</h3>
+            <ul class="evolucao">
+              {evolucao.map((e) => (
+                <li>
+                  <span class="ano-bens">{e.ano}</span>
+                  <span class="barra" style={`--tamanho: ${(e.total / maiorTotal) * 100}%`}></span>
+                  <span class="valor">{e.total > 0 ? reais(e.total) : "Nenhum bem"}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        <p class="fonte">
+          Fonte: <a href={fonteTse(bensAtuais.ano)}>TSE, bens de candidatos</a>. Valores declarados pelo
+          próprio candidato ao registrar a candidatura, sem correção pela inflação.
+        </p>
+      </section>
+    )}
+
     <section>
       <h2>Quais eleições já disputou?</h2>
       <p class="explica">Todas as candidaturas registradas no TSE desde 2014, da mais recente para a mais antiga.</p>
@@ -101,7 +152,7 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
     <section>
       <h2>O que ainda não está aqui</h2>
       <p>
-        Bens declarados, contas de campanha, mandatos exercidos, processos e sanções ainda
+        Contas de campanha, mandatos exercidos, processos e sanções ainda
         não foram incluídos no Alumia Aqui. A ausência dessas informações nesta página não
         significa que elas não existam.
       </p>
@@ -155,5 +206,30 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
     background: var(--luz-forte); border: 3px solid var(--noite);
   }
   h3 { font-size: 1.1rem; }
+  .sub { margin: 1.5rem 0 0.5rem; }
+
+  .total-bens { font-size: clamp(1.8rem, 6vw, 2.4rem); font-weight: 700; line-height: 1.1; }
+  .total-bens + .explica { margin-top: 0.25rem; }
+  .bens, .evolucao { list-style: none; margin: 0; padding: 0; }
+  .bens li {
+    display: flex; justify-content: space-between; gap: 1rem;
+    padding: 0.5rem 0; border-bottom: 2px solid var(--borda);
+  }
+  .valor { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  .evolucao li {
+    display: grid; grid-template-columns: 3.5rem 1fr auto; gap: 0.75rem;
+    align-items: center; padding: 0.3rem 0;
+  }
+  .ano-bens { font-weight: 700; }
+  .barra { height: 0.9rem; border-radius: 0 6px 6px 0; background: var(--borda); position: relative; }
+  .barra::after {
+    content: ""; position: absolute; inset: 0 auto 0 0; width: var(--tamanho);
+    min-width: 3px; border-radius: inherit; background: var(--luz-forte);
+  }
+  @media (max-width: 30rem) {
+    .evolucao li { grid-template-columns: 3.5rem 1fr; }
+    .evolucao .valor { grid-column: 2; }
+  }
   .resultado { font-weight: 700; }
 </style>

@@ -1,21 +1,27 @@
-"""Leitura dos arquivos de candidatos do TSE (consulta_cand).
+"""Leitura dos arquivos de dados abertos do TSE.
 
-Funções compartilhadas pelos scripts do pipeline: download do zip de um ano
-e leitura das linhas dos CSVs, uma por vez, para não carregar tudo na memória.
+Funções compartilhadas pelos scripts do pipeline: download do zip de um
+conjunto de dados (candidatos, bens) para um ano e leitura das linhas dos
+CSVs, uma por vez, para não carregar tudo na memória.
 """
 
 import csv
 import io
+import urllib.error
 import urllib.request
 import zipfile
 from collections.abc import Iterator
 from pathlib import Path
 
-URL_CANDIDATOS = "https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_{ano}.zip"
+URL_CONJUNTO = "https://cdn.tse.jus.br/estatistica/sead/odsele/{conjunto}/{conjunto}_{ano}.zip"
 PASTA_DADOS = Path(__file__).parent / "dados_brutos"
 
 # Valores que o TSE usa para "sem informação".
 VALORES_NULOS = {"", "#NULO#", "#NULO", "#NE", "#NE#", "-1", "-3", "-4"}
+
+
+class ArquivoInexistente(Exception):
+    """O TSE não publicou esse conjunto para esse ano."""
 
 
 def limpar(valor: str | None) -> str | None:
@@ -25,16 +31,35 @@ def limpar(valor: str | None) -> str | None:
     return None if valor in VALORES_NULOS else valor
 
 
-def baixar_candidatos(ano: int) -> Path:
+def valor_em_reais(texto: str | None) -> float | None:
+    """'150000,00' ou '150000.00' -> 150000.0"""
+    texto = limpar(texto)
+    if not texto:
+        return None
+    if "," in texto:
+        texto = texto.replace(".", "").replace(",", ".")
+    try:
+        return float(texto)
+    except ValueError:
+        return None
+
+
+def baixar(conjunto: str, ano: int) -> Path:
     PASTA_DADOS.mkdir(exist_ok=True)
-    destino = PASTA_DADOS / f"consulta_cand_{ano}.zip"
+    destino = PASTA_DADOS / f"{conjunto}_{ano}.zip"
     if destino.exists():
         return destino
 
-    url = URL_CANDIDATOS.format(ano=ano)
+    url = URL_CONJUNTO.format(conjunto=conjunto, ano=ano)
     print(f"Baixando {url}")
     temporario = destino.with_suffix(".parcial")
-    with urllib.request.urlopen(url) as resposta, open(temporario, "wb") as arquivo:
+    try:
+        resposta = urllib.request.urlopen(url)
+    except urllib.error.HTTPError as erro:
+        if erro.code in (403, 404):
+            raise ArquivoInexistente(url) from erro
+        raise
+    with resposta, open(temporario, "wb") as arquivo:
         total = int(resposta.headers.get("Content-Length", 0))
         baixado = 0
         while bloco := resposta.read(1024 * 1024):
@@ -47,9 +72,9 @@ def baixar_candidatos(ano: int) -> Path:
     return destino
 
 
-def ler_candidatos(ano: int) -> Iterator[dict]:
-    """Devolve as linhas de candidatos de um ano, uma a uma."""
-    caminho = baixar_candidatos(ano)
+def ler(conjunto: str, ano: int) -> Iterator[dict]:
+    """Devolve as linhas de um conjunto de dados de um ano, uma a uma."""
+    caminho = baixar(conjunto, ano)
     csv.field_size_limit(10_000_000)
     with zipfile.ZipFile(caminho) as z:
         csvs = [n for n in z.namelist() if n.lower().endswith(".csv")]
@@ -59,3 +84,11 @@ def ler_candidatos(ano: int) -> Iterator[dict]:
             with z.open(nome) as bruto:
                 texto = io.TextIOWrapper(bruto, encoding="latin-1", newline="")
                 yield from csv.DictReader(texto, delimiter=";")
+
+
+def ler_candidatos(ano: int) -> Iterator[dict]:
+    return ler("consulta_cand", ano)
+
+
+def ler_bens(ano: int) -> Iterator[dict]:
+    return ler("bem_candidato", ano)
