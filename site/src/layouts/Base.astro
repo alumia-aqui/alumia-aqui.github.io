@@ -16,6 +16,11 @@ const {
   inicio = false,
   imagem,
 } = Astro.props;
+
+// Data da geração do site, no horário de Brasília.
+const atualizado = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric",
+}).format(new Date());
 ---
 <!doctype html>
 <html lang="pt-BR">
@@ -58,6 +63,7 @@ const {
         O Alumia Aqui reúne apenas dados públicos e oficiais, com link para cada fonte.
         Não avaliamos candidatos. O mesmo método vale para todos.
       </p>
+      <p>Dados atualizados em {atualizado}.</p>
       <p><a href={caminho("como-funciona/")}>Como funciona</a></p>
     </footer>
   </body>
