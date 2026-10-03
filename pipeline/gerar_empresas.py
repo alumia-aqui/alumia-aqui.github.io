@@ -247,7 +247,7 @@ def main() -> None:
         "referencia": mes,
         "gerado_em": date.today().isoformat(),
         "pessoas": {p: sorted(v, key=lambda e: e["entrada"] or "", reverse=True) for p, v in sorted(por_pessoa.items())},
-    }, ensure_ascii=False, indent=1), encoding="utf-8")
+    }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")  # compacto: o arquivo vai para o repositório
     print(f"  {len(por_pessoa)} candidatos sócios de empresas. Resultado em {SAIDA}")
 
 

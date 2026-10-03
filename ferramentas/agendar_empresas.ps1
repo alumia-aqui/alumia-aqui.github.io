@@ -1,4 +1,4 @@
-# Cria (ou recria) a tarefa agendada que roda atualizar_empresas.ps1 toda semana.
+﻿# Cria (ou recria) a tarefa agendada que roda atualizar_empresas.ps1 toda semana.
 # Rodar uma vez, no PowerShell, dentro da pasta do repositório:
 #   powershell -ExecutionPolicy Bypass -File ferramentas\agendar_empresas.ps1
 
