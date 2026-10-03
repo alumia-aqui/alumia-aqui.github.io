@@ -26,7 +26,7 @@ Pré-requisitos: Python 3.14 e Node.js 24.
 - **Gerar os dados:** `python pipeline/gerar_pessoas.py`. Baixa os arquivos do TSE e gera um JSON por pessoa em pipeline/saida/. Na primeira vez cria a chave em .env, que precisa ser guardada.
 - **Gerar as fotos:** `pip install pillow` uma vez, depois `python pipeline/gerar_fotos.py`. Opcional: sem fotos, o site funciona normalmente.
 - **Empresas (mensal, no computador local):** `powershell -ExecutionPolicy Bypass -File ferramentas\atualizar_empresas.ps1`. Baixa os dados de sócios da Receita Federal, que recusa conexões vindas do GitHub, gera dados/empresas.json e envia ao repositório. Os arquivos da Receita somam alguns GB; só o mês atual fica guardado.
-- **Agendar as empresas:** `schtasks /Create /SC MONTHLY /D 20 /ST 20:00 /TN "Alumia Aqui - empresas" /TR "powershell -ExecutionPolicy Bypass -File \"<caminho do repositório>\ferramentas\atualizar_empresas.ps1\""`. O computador precisa estar ligado e com sessão aberta no horário. Registro da última execução: ferramentas/ultima_execucao_empresas.log.
+- **Agendar as empresas:** no PowerShell, dentro da pasta do repositório, rodar uma vez `powershell -ExecutionPolicy Bypass -File ferramentas\agendar_empresas.ps1`. Cria a tarefa semanal "Alumia Aqui - empresas" (domingo, 20h; se o computador estiver desligado, roda quando ligar). A Receita publica uma vez por mês: nas outras semanas o script não baixa nada nem envia mudanças. Registro da última execução: ferramentas/ultima_execucao_empresas.log.
 - **Instalar o site:** `npm install`, dentro de site/.
 - **Ver o site:** `npm run build` e depois `npm run preview`, dentro de site/. A busca só funciona depois do build, porque o índice é gerado nele.
 
