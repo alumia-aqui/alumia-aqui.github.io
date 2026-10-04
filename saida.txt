@@ -1,0 +1,17 @@
+Em exercício: 513 deputados e 81 senadores
+Com Retrato (candidatos agora): 0
+Situações mais comuns no Senado: [('AGUARDANDO DESIGNAÇÃO DO RELATOR', 876), ('AGUARDANDO DESPACHO', 610), ('MATÉRIA COM A RELATORIA', 472), ('REMETIDA À CÂMARA DOS DEPUTADOS', 215), ('PRONTA PARA A PAUTA NA COMISSÃO', 176), ('RETIRADA PELO AUTOR', 90), ('TRANSFORMADA EM NORMA JURÍDICA', 44), ('PREJUDICADA', 42), ('AGUARDANDO AUDIÊNCIA PÚBLICA', 26), (None, 16), ('PRONTO PARA DELIBERAÇÃO DO PLENÁRIO', 11), ('AGUARDANDO INCLUSÃO ORDEM DO DIA DE REQUERIMENTO', 10)]
+Gerado congresso.json: 594 parlamentares, 23431 projetos (200 viraram norma), 4 sem gasto de cota registrado
+anos de cota: [2023, 2024, 2025, 2026]
+{"casa": "Câmara", "nome": "Acácio Favacho", "partido": "MDB", "uf": "AP", "participacao": null, "url": "https://www.camara.leg.br/deputados/204379", "retrato": null, "projetos": 33, "leis": 0, "cota": {"2023": 591128.85, "2024": 573533.86, "2025": 486603.48, "2026": 304525.6}}
+{"casa": "Câmara", "nome": "Adail Filho", "partido": "MDB", "uf": "AM", "participacao": null, "url": "https://www.camara.leg.br/deputados/220714", "retrato": null, "projetos": 38, "leis": 0, "cota": {"2023": 550123.81, "2024": 598664.14, "2025": 564912.76, "2026": 296310.78}}
+{"casa": "Câmara", "nome": "Adilson Barroso", "partido": "PL", "uf": "SP", "participacao": null, "url": "https://www.camara.leg.br/deputados/221328", "retrato": null, "projetos": 35, "leis": 0, "cota": {"2023": 448969.01, "2024": 518849.83, "2025": 486018.8, "2026": 306875.64}}
+{"casa": "Senado", "nome": "Alan Rick", "partido": "REPUBLICANOS", "uf": "AC", "participacao": "Titular", "url": "https://www25.senado.leg.br/web/senadores/senador/-/perfil/5672", "retrato": null, "projetos": 32, "leis": 2, "cota": {"2023": 433257.75, "2024": 511358.56, "2025": 435216.0, "2026": 236667.93}}
+{"casa": "Senado", "nome": "Alessandro Vieira", "partido": "MDB", "uf": "SE", "participacao": "Titular", "url": "https://www25.senado.leg.br/web/senadores/senador/-/perfil/5982", "retrato": null, "projetos": 76, "leis": 0, "cota": {"2023": 501046.3, "2024": 559855.53, "2025": 579363.35, "2026": 386072.23}}
+{"casa": "Senado", "nome": "Angelo Coronel", "partido": "REPUBLICANOS", "uf": "BA", "participacao": "Titular", "url": "https://www25.senado.leg.br/web/senadores/senador/-/perfil/5967", "retrato": null, "projetos": 26, "leis": 0, "cota": {"2023": 433381.78, "2024": 475269.93, "2025": 530073.13, "2026": 318355.88}}
+sem projetos: 20
+com lei: 130 total de leis: 200
+sem cota em 2025: [('Afonso Florence', 'Câmara'), ('Camilo Santana', 'Senado'), ('Carlos Fávaro', 'Senado'), ('Dr Flávio', 'Câmara'), ('Gilmar Machado', 'Câmara'), ('Idilvan Alencar', 'Câmara'), ('Inácio Arruda', 'Câmara'), ('Itamar Paim', 'Câmara'), ('Jorge Araújo', 'Câmara'), ('Jorge Kajuru', 'Senado'), ('José Carlos Araujo', 'Câmara'), ('Leandre', 'Câmara'), ('Leonardo Gadelha', 'Câmara'), ('Lourdinha Pereira', 'Senado'), ('Marcelo Nilo', 'Câmara'), ('Marcos Braz', 'Câmara'), ('Marina Silva', 'Câmara'), ('Milton Vieira', 'Câmara'), ('Nivaldo Albuquerque', 'Câmara'), ('Paulo Soares', 'Câmara'), ('Priscila Costa', 'Câmara'), ('Renan Filho', 'Senado'), ('Renzo Braz', 'Senado'), ('Roberta Acioly', 'Senado'), ('Sandro Alex', 'Câmara')]
+sem partido: [('Romário', 'Senado')]
+Câmara 513 cota 2025 média: 427835 projetos média: 40.5
+Senado 81 cota 2025 média: 413433 projetos média: 32.5
