@@ -84,6 +84,13 @@ jobs:
           ALUMIA_CHAVE: ${{ secrets.ALUMIA_CHAVE }}
         run: python pipeline/gerar_parlamento.py
 
+      # Painel do Congresso: todos os parlamentares em exercício, candidatos ou não.
+      - name: Gerar painel do Congresso
+        continue-on-error: true
+        env:
+          ALUMIA_CHAVE: ${{ secrets.ALUMIA_CHAVE }}
+        run: python pipeline/gerar_congresso.py
+
       # Guarda o que foi baixado a cada execução, mesmo se o passo anterior falhar.
       # O GitHub descarta sozinho os caches mais antigos.
       - name: Guardar dados da Câmara e do Senado

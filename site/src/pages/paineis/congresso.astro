@@ -1,0 +1,281 @@
+---
+import Base from "../../layouts/Base.astro";
+import "../../styles/paineis.css";
+import { painelCongresso } from "../../lib/paineis.js";
+import { caminho } from "../../lib/caminho.js";
+import { nomeUf, dataBr } from "../../lib/texto.js";
+
+const congresso = painelCongresso();
+const anos = congresso?.anos_cota ?? [];
+const anoAtual = Math.max(...anos);
+// Padrão: o último ano completo, para que todos tenham doze meses de gasto.
+const anoPadrao = anos.includes(anoAtual - 1) ? anoAtual - 1 : anoAtual;
+const ufs = [...new Set((congresso?.parlamentares ?? []).map((p) => p.uf))]
+  .sort((a, b) => nomeUf(a).localeCompare(nomeUf(b), "pt-BR"));
+const partidos = [...new Set((congresso?.parlamentares ?? []).map((p) => p.partido ?? "Sem partido"))]
+  .sort((a, b) => a.localeCompare(b, "pt-BR"));
+const dados = congresso && {
+  parlamentares: congresso.parlamentares,
+  ufNomes: Object.fromEntries(ufs.map((u) => [u, nomeUf(u)])),
+  anoAtual,
+  base: caminho(),
+};
+const inicio = congresso ? dataBr(congresso.legislatura.inicio) : "";
+---
+<Base
+  titulo="Painel do Congresso - Alumia Aqui"
+  descricao="Deputados e senadores em exercício por partido e estado: projetos apresentados e gastos da cota parlamentar, com dados da Câmara e do Senado."
+>
+  <article class="conteudo painel-pagina">
+    <p class="trilha"><a href={caminho("paineis/")}>Painéis</a></p>
+    <h1>Congresso Nacional</h1>
+    <p class="apoio">
+      Os deputados e senadores em exercício hoje, segundo a Câmara e o Senado: projetos apresentados
+      desde o início da legislatura atual, em {inicio}, e gastos da cota parlamentar.
+    </p>
+
+    {!congresso && (
+      <p class="vazio">Os dados do Congresso não puderam ser atualizados nesta versão do site. Tente de novo amanhã.</p>
+    )}
+
+    {congresso && (
+      <>
+        <form class="filtros" id="filtros" hidden>
+          <label>Casa
+            <select name="casa">
+              <option value="">Câmara e Senado</option>
+              <option value="Câmara">Câmara dos Deputados</option>
+              <option value="Senado">Senado Federal</option>
+            </select>
+          </label>
+          <label>Estado
+            <select name="uf"><option value="">Todos os estados</option>
+              {ufs.map((u) => <option value={u}>{nomeUf(u)}</option>)}
+            </select>
+          </label>
+          <label>Partido
+            <select name="partido"><option value="">Todos os partidos</option>
+              {partidos.map((p) => <option value={p}>{p}</option>)}
+            </select>
+          </label>
+          <label>Ano da cota
+            <select name="ano">
+              {[...anos].reverse().map((a) => (
+                <option value={a} selected={a === anoPadrao}>{a}{a === anoAtual ? " (até agora)" : ""}</option>
+              ))}
+            </select>
+          </label>
+          <button class="botao" type="reset">Limpar filtros</button>
+        </form>
+
+        <p class="total" aria-live="polite"><strong id="total">{congresso.parlamentares.length}</strong> <span id="total-texto">parlamentares em exercício</span></p>
+
+        <noscript>
+          <p class="vazio">Os gráficos deste painel precisam de JavaScript ligado no navegador.</p>
+        </noscript>
+
+        <section class="bloco" id="grupos" hidden>
+          <div class="bloco-topo">
+            <h2 id="grupos-titulo">Por partido</h2>
+          </div>
+          <div class="filtros filtros-leves">
+            <label>Agrupar por
+              <select id="agrupar">
+                <option value="partido">Partido</option>
+                <option value="uf">Estado</option>
+                <option value="casa">Casa</option>
+              </select>
+            </label>
+            <label>Mostrar
+              <select id="medida">
+                <option value="quantidade">Número de parlamentares</option>
+                <option value="projetos">Projetos apresentados (média)</option>
+                <option value="leis">Projetos que viraram norma (média)</option>
+                <option value="cota">Gasto da cota (média)</option>
+              </select>
+            </label>
+            <label>Ordem
+              <select id="ordem-grupos">
+                <option value="nome">Alfabética</option>
+                <option value="valor">Do maior para o menor</option>
+              </select>
+            </label>
+          </div>
+          <p class="nota" id="grupos-nota"></p>
+          <ul class="barras" id="grupos-lista"></ul>
+        </section>
+
+        <section class="bloco" id="lista" hidden>
+          <div class="bloco-topo">
+            <h2>Parlamentares</h2>
+            <label class="ordem">Ordem
+              <select id="ordem-lista">
+                <option value="nome">alfabética</option>
+                <option value="partido">por partido</option>
+                <option value="uf">por estado</option>
+                <option value="projetos">mais projetos</option>
+                <option value="cota">maior gasto da cota</option>
+              </select>
+            </label>
+          </div>
+          <div id="nomes"></div>
+        </section>
+
+        <section class="bloco">
+          <h2>Como ler estes números</h2>
+          <ul class="leitura">
+            <li><strong>Partido:</strong> o atual, segundo a Câmara e o Senado. Quem mudou de partido aparece só no atual.</li>
+            <li><strong>Projetos apresentados:</strong> projetos de lei, de lei complementar, de decreto legislativo e propostas de emenda à Constituição em que o parlamentar é o autor principal, desde {inicio}. A quantidade não mostra o conteúdo de cada projeto.</li>
+            <li><strong>Viraram norma:</strong> desses projetos, quantos já foram transformados em lei, decreto legislativo ou emenda constitucional. A tramitação costuma levar anos, e projetos recentes ainda podem avançar.</li>
+            <li><strong>Cota parlamentar:</strong> valor reembolsado no ano para despesas do mandato, como passagens, aluguel de escritório e divulgação. O limite muda conforme o estado e a casa, porque inclui passagens até Brasília. Por isso, a comparação mais justa é entre parlamentares do mesmo estado e da mesma casa.</li>
+            <li><strong>Quem assumiu durante o ano</strong>, como suplentes, ou ficou fora do mandato por um tempo, como ministros e secretários, tem menos meses de gasto e de atuação. Quem não teve gasto no ano aparece como "sem gasto registrado" e fica fora da média da cota.</li>
+            <li><strong>Médias</strong> por partido, estado ou casa: soma dividida pelo número de parlamentares do grupo. Grupos pequenos variam mais.</li>
+          </ul>
+        </section>
+
+        <p class="fonte">
+          Fonte: dados abertos da <a href="https://dadosabertos.camara.leg.br">Câmara dos Deputados</a> e do
+          <a href="https://www12.senado.leg.br/dados-abertos">Senado Federal</a>, consultados em {dataBr(congresso.consultado_em)}.
+          Cada parlamentar tem o link para o Retrato, quando é candidato em {anoAtual}, ou para o perfil oficial.
+        </p>
+      </>
+    )}
+  </article>
+</Base>
+
+{dados && <script is:inline type="application/json" id="dados-painel" set:html={JSON.stringify(dados)}></script>}
+
+<script is:inline>
+(function () {
+  var elemento = document.getElementById("dados-painel");
+  if (!elemento) return;
+  var dados = JSON.parse(elemento.textContent);
+  var todos = dados.parlamentares;
+  var form = document.getElementById("filtros");
+  var agrupar = document.getElementById("agrupar");
+  var medida = document.getElementById("medida");
+  var ordemGrupos = document.getElementById("ordem-grupos");
+  var ordemLista = document.getElementById("ordem-lista");
+  var nomes = document.getElementById("nomes");
+  var fmt = new Intl.NumberFormat("pt-BR");
+  var decimal = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+  var reais = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  var CASAS = { "Câmara": "Câmara dos Deputados", "Senado": "Senado Federal" };
+  var limite = 50;
+
+  form.hidden = false;
+  document.getElementById("grupos").hidden = false;
+  document.getElementById("lista").hidden = false;
+
+  function escapar(t) {
+    return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
+  }
+  function partido(p) { return p.partido || "Sem partido"; }
+  function comparar(a, b) { return a.localeCompare(b, "pt-BR"); }
+  function ano() { return form.elements.ano.value; }
+  function rotuloAno() { return ano() + (Number(ano()) === dados.anoAtual ? ", até agora" : ""); }
+
+  function selecionados() {
+    var casa = form.elements.casa.value, uf = form.elements.uf.value, part = form.elements.partido.value;
+    return todos.filter(function (p) {
+      return (!casa || p.casa === casa) && (!uf || p.uf === uf) && (!part || partido(p) === part);
+    });
+  }
+
+  var NOTAS = {
+    quantidade: "Quantos parlamentares em exercício há em cada grupo.",
+    projetos: "Projetos apresentados como autor principal desde o início da legislatura, divididos pelo número de parlamentares do grupo.",
+    leis: "Projetos do grupo que já viraram lei, decreto legislativo ou emenda constitucional, divididos pelo número de parlamentares.",
+    cota: "Valor reembolsado pela cota parlamentar, dividido pelo número de parlamentares do grupo que tiveram gasto no ano. O limite da cota muda conforme o estado e a casa.",
+  };
+
+  function nomeGrupo(chave, valor) {
+    if (chave === "uf") return dados.ufNomes[valor] || valor;
+    if (chave === "casa") return CASAS[valor];
+    return valor;
+  }
+
+  function desenharGrupos(lista) {
+    var chave = agrupar.value, m = medida.value;
+    var grupos = {};
+    lista.forEach(function (p) {
+      var g = chave === "partido" ? partido(p) : p[chave];
+      grupos[g] = grupos[g] || { n: 0, projetos: 0, leis: 0, cota: 0, comCota: 0 };
+      grupos[g].n += 1;
+      grupos[g].projetos += p.projetos;
+      grupos[g].leis += p.leis || 0;
+      // Cota: a média considera só quem teve gasto no ano. Quem estava fora do mandato
+      // (por exemplo, como ministro) não tem gasto e puxaria a média para baixo.
+      if (p.cota[ano()] > 0) { grupos[g].cota += p.cota[ano()]; grupos[g].comCota += 1; }
+    });
+    var itens = Object.keys(grupos).map(function (g) {
+      var x = grupos[g];
+      var base = m === "cota" ? x.comCota : x.n;
+      return { nome: nomeGrupo(chave, g), n: base, valor: m === "quantidade" ? x.n : base ? x[m] / base : 0 };
+    });
+    if (ordemGrupos.value === "valor") itens.sort(function (a, b) { return b.valor - a.valor || comparar(a.nome, b.nome); });
+    else itens.sort(function (a, b) { return comparar(a.nome, b.nome); });
+    var maior = Math.max.apply(null, itens.map(function (x) { return x.valor; }).concat([1e-9]));
+    var titulos = { partido: "Por partido", uf: "Por estado", casa: "Por casa" };
+    document.getElementById("grupos-titulo").textContent = titulos[chave];
+    document.getElementById("grupos-nota").textContent = NOTAS[m] + (m === "cota" ? " Ano: " + rotuloAno() + "." : "");
+    document.getElementById("grupos-lista").innerHTML = itens.map(function (x) {
+      var valor = m === "quantidade" ? fmt.format(x.valor) : m === "cota" ? reais.format(x.valor) : decimal.format(x.valor);
+      var extra = m === "quantidade" ? "" : "<small>" + x.n + (x.n === 1 ? " parlamentar" : " parlamentares") + (m === "cota" ? " com gasto" : "") + "</small>";
+      return '<li><span class="rotulo">' + escapar(x.nome) + '</span><span class="trilho"><span class="barra" style="width:' +
+        (100 * x.valor / maior).toFixed(1) + '%"></span></span><span class="valor">' + valor + extra + "</span></li>";
+    }).join("");
+  }
+
+  function desenharLista(lista) {
+    var a = ano();
+    var ordem = ordemLista.value;
+    var ordenada = lista.slice().sort(function (x, y) {
+      if (ordem === "partido") return comparar(partido(x), partido(y)) || comparar(x.nome, y.nome);
+      if (ordem === "uf") return comparar(dados.ufNomes[x.uf] || "", dados.ufNomes[y.uf] || "") || comparar(x.nome, y.nome);
+      if (ordem === "projetos") return y.projetos - x.projetos || comparar(x.nome, y.nome);
+      if (ordem === "cota") return (y.cota[a] || 0) - (x.cota[a] || 0) || comparar(x.nome, y.nome);
+      return comparar(x.nome, y.nome);
+    });
+    var html = '<ul class="nomes">';
+    ordenada.slice(0, limite).forEach(function (p) {
+      var link = p.retrato ? dados.base + "pessoa/" + p.retrato + "/" : p.url;
+      var casa = p.casa === "Senado" && p.participacao && p.participacao !== "Titular" ? "Senado (" + p.participacao.toLowerCase() + ")" : CASAS[p.casa];
+      var detalhe = [casa, partido(p), dados.ufNomes[p.uf] || p.uf].join(" · ");
+      var numeros = fmt.format(p.projetos) + (p.projetos === 1 ? " projeto" : " projetos") +
+        (p.leis ? " (" + p.leis + (p.leis === 1 ? " virou norma)" : " viraram norma)") : "") +
+        " · Cota em " + rotuloAno() + ": " + (p.cota[a] > 0 ? reais.format(p.cota[a]) : "sem gasto registrado");
+      html += '<li><a class="nome" href="' + escapar(link) + '">' + escapar(p.nome) + "</a>" +
+        '<span class="detalhe">' + escapar(detalhe) + "</span>" +
+        '<span class="detalhe">' + numeros + "</span>" +
+        '<span class="detalhe">' + (p.retrato ? '<a href="' + escapar(link) + '">Ver Retrato</a> · ' : "") +
+        '<a href="' + escapar(p.url) + '">Perfil oficial</a></span></li>';
+    });
+    html += "</ul>";
+    if (ordenada.length > limite) html += '<button class="botao mais" type="button" id="mais">Mostrar mais parlamentares</button>';
+    nomes.innerHTML = lista.length ? html : '<p class="vazio">Nenhum parlamentar com esses filtros.</p>';
+    var mais = document.getElementById("mais");
+    if (mais) mais.addEventListener("click", function () { limite += 200; desenharLista(selecionados()); });
+  }
+
+  function desenhar() {
+    var lista = selecionados();
+    document.getElementById("total").textContent = fmt.format(lista.length);
+    document.getElementById("total-texto").textContent = lista.length === 1 ? "parlamentar em exercício" : "parlamentares em exercício";
+    desenharGrupos(lista);
+    desenharLista(lista);
+  }
+
+  form.addEventListener("change", function () { limite = 50; desenhar(); });
+  form.addEventListener("reset", function () { setTimeout(function () { limite = 50; desenhar(); }, 0); });
+  [agrupar, medida, ordemGrupos].forEach(function (s) { s.addEventListener("change", function () { desenharGrupos(selecionados()); }); });
+  ordemLista.addEventListener("change", function () { desenharLista(selecionados()); });
+  desenhar();
+})();
+</script>
+
+<style>
+  .filtros-leves { border-style: dashed; }
+  .leitura { padding-left: 1.25rem; }
+  .leitura li { margin-top: 0.6rem; }
+</style>

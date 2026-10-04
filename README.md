@@ -27,6 +27,7 @@ Pré-requisitos: Python 3.14 e Node.js 24.
 
 - **Gerar os dados:** `python pipeline/gerar_pessoas.py`. Baixa os arquivos do TSE e gera um JSON por pessoa em pipeline/saida/. Na primeira vez cria a chave em .env, que precisa ser guardada.
 - **Gerar as fotos:** `pip install pillow` uma vez, depois `python pipeline/gerar_fotos.py`. Opcional: sem fotos, o site funciona normalmente.
+- **Painel do Congresso:** `python pipeline/gerar_congresso.py`, depois de gerar_parlamento.py. Gera pipeline/saida/congresso.json com todos os deputados e senadores em exercício, candidatos ou não: partido atual, UF, projetos apresentados na legislatura atual, quantos viraram norma e gasto da cota por ano.
 - **Empresas (mensal, no computador local):** `powershell -ExecutionPolicy Bypass -File ferramentas\atualizar_empresas.ps1`. Baixa os dados de sócios da Receita Federal, que recusa conexões vindas do GitHub, gera dados/empresas.json e envia ao repositório. Os arquivos da Receita somam alguns GB; só o mês atual fica guardado.
 - **Agendar as empresas:** no PowerShell, dentro da pasta do repositório, rodar uma vez `powershell -ExecutionPolicy Bypass -File ferramentas\agendar_empresas.ps1`. Cria a tarefa semanal "Alumia Aqui - empresas" (domingo, 20h; se o computador estiver desligado, roda quando ligar). A Receita publica uma vez por mês: nas outras semanas o script não baixa nada nem envia mudanças. Registro da última execução: ferramentas/ultima_execucao_empresas.log.
 - **Instalar o site:** `npm install`, dentro de site/.
@@ -60,7 +61,7 @@ TODO: documentar campos e forma de acesso de cada fonte em docs/fontes.md.
 3. Sanções e empresas: TCU, CGU, CNJ, sociedades.
 4. Aba educativa: poderes, cargos, processos públicos.
 5. Contratos e obras: PNCP e Obrasgov.
-6. Painéis: visão geral dos candidatos e mandatos, com filtros (escolaridade, partido, cargo, UF, projetos aprovados, gastos de cota por partido, emendas parlamentares). Mesmas regras de neutralidade: sem ranking pronto, ordem padrão alfabética, valores comparáveis (por parlamentar, por mês) e fonte em cada número.
+6. Painéis (em andamento; candidaturas e Congresso publicados): visão geral dos candidatos e mandatos, com filtros (escolaridade, partido, cargo, UF, projetos aprovados, gastos de cota por partido, emendas parlamentares). Mesmas regras de neutralidade: sem ranking pronto, ordem padrão alfabética, valores comparáveis (por parlamentar, por mês) e fonte em cada número.
 7. Praça: seção da comunidade para envio e avaliação de fontes.
 
 ## 6 - Licença

@@ -1,0 +1,71 @@
+/* Estilos comuns dos Painéis. */
+
+.painel-pagina { padding-top: 1.5rem; padding-bottom: 2.5rem; }
+.painel-pagina h1 { font-size: clamp(1.9rem, 6.5vw, 2.5rem); margin-top: 0.25rem; }
+.painel-pagina .apoio { margin-top: 0.6rem; color: var(--tinta-suave); }
+.trilha { font-size: 0.95rem; }
+.trilha a { color: var(--tinta-suave); }
+
+.filtros {
+  margin-top: 1.25rem; padding: 1rem;
+  border: 2px solid var(--borda); border-radius: var(--raio);
+  display: grid; gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  align-items: end;
+}
+.filtros .botao { grid-column: 1 / -1; justify-self: start; }
+.filtros label { display: grid; gap: 0.25rem; font-weight: 700; font-size: 0.95rem; }
+.filtros select, .ordem select {
+  font: inherit; font-weight: 400; color: var(--tinta);
+  padding: 0.55rem 0.7rem; min-height: 2.9rem;
+  border: 2px solid var(--noite); border-radius: 10px; background: #fff;
+  width: 100%; min-width: 0;
+}
+.botao {
+  font: inherit; font-weight: 700; color: var(--noite);
+  padding: 0.55rem 1rem; min-height: 2.9rem;
+  border: 2px solid var(--noite); border-radius: 999px; background: transparent;
+  cursor: pointer;
+}
+.botao:hover { background: rgb(255 226 122 / 0.45); }
+
+.total { margin-top: 1.25rem; font-size: 1.15rem; }
+.total strong { font-size: 2.2rem; display: block; line-height: 1.1; }
+
+.bloco { margin-top: 2.25rem; }
+.bloco h2 { font-size: 1.35rem; }
+.bloco .nota { margin-top: 0.4rem; color: var(--tinta-suave); font-size: 0.95rem; }
+.bloco-topo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 0.5rem 1rem; }
+.ordem { display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; }
+.ordem select { width: auto; min-height: 2.5rem; padding: 0.35rem 0.6rem; }
+
+/* Barras: rótulo, barra e número. Uma série só, na cor da marca. */
+.barras { list-style: none; margin: 0.75rem 0 0; padding: 0; }
+.barras li {
+  display: grid; grid-template-columns: minmax(7rem, 15rem) 1fr auto;
+  gap: 0.25rem 0.75rem; align-items: center;
+  padding: 0.35rem 0; border-bottom: 1px solid var(--borda);
+}
+.barras .rotulo { font-size: 0.95rem; }
+.barras .trilho { height: 0.8rem; }
+.barras .barra {
+  display: block; height: 100%; min-width: 2px;
+  background: var(--noite); border-radius: 0 4px 4px 0;
+}
+.barras .valor { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; white-space: nowrap; }
+.barras .valor small { font-weight: 400; color: var(--tinta-suave); margin-left: 0.35rem; }
+@media (max-width: 30rem) {
+  .barras li { grid-template-columns: 1fr auto; }
+  .barras .trilho { grid-column: 1 / -1; grid-row: 2; }
+}
+
+.fonte { margin-top: 0.75rem; font-size: 0.9rem; color: var(--tinta-suave); }
+.fonte a { color: var(--tinta-suave); }
+
+/* Lista de nomes e de parlamentares. */
+.nomes { list-style: none; margin: 0.75rem 0 0; padding: 0; }
+.nomes li { padding: 0.6rem 0; border-bottom: 2px solid var(--borda); }
+.nomes .nome { font-weight: 700; }
+.nomes .detalhe { display: block; color: var(--tinta-suave); font-size: 0.95rem; }
+.mais { margin-top: 1rem; }
+.vazio { margin-top: 0.75rem; padding: 0.85rem 1rem; background: rgb(255 226 122 / 0.35); border-radius: var(--raio); }
