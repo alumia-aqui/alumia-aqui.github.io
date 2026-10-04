@@ -1,0 +1,193 @@
+---
+import Base from "../../layouts/Base.astro";
+import "../../styles/paineis.css";
+import { painelCandidatos } from "../../lib/paineis.js";
+import { caminho } from "../../lib/caminho.js";
+
+const { ano, total, listas, linhas } = painelCandidatos();
+const fonte = `https://dadosabertos.tse.jus.br/dataset/candidatos-${ano}`;
+const dados = { ano, listas, linhas, base: caminho() };
+const numero = new Intl.NumberFormat("pt-BR");
+---
+<Base
+  titulo={`Painel das candidaturas de ${ano} - Alumia Aqui`}
+  descricao={`Quantas candidaturas há em ${ano} por cargo, estado, partido e escolaridade, com dados do TSE.`}
+>
+  <article class="conteudo painel-pagina">
+    <p class="trilha"><a href={caminho("paineis/")}>Painéis</a></p>
+    <h1>Candidaturas de {ano}</h1>
+    <p class="apoio">
+      Quantas candidaturas há em cada grupo, segundo o TSE. Escolha cargo, estado ou partido
+      para ver só uma parte.
+    </p>
+
+    <form class="filtros" id="filtros" hidden>
+      <label>Cargo
+        <select name="cargo"><option value="">Todos os cargos</option>
+          {listas.cargo.map((c, i) => <option value={i}>{c}</option>)}
+        </select>
+      </label>
+      <label>Estado
+        <select name="uf"><option value="">Todos os estados</option>
+          {listas.uf.map((u, i) => <option value={i}>{u}</option>)}
+        </select>
+      </label>
+      <label>Partido
+        <select name="partido"><option value="">Todos os partidos</option>
+          {listas.partido.map((p, i) => <option value={i}>{p}</option>)}
+        </select>
+      </label>
+      <button class="botao" type="reset">Limpar filtros</button>
+    </form>
+
+    <p class="total" aria-live="polite"><strong id="total">{numero.format(total)}</strong> <span id="total-texto">candidaturas registradas</span></p>
+
+    <noscript>
+      <p class="vazio">Os gráficos deste painel precisam de JavaScript ligado no navegador.</p>
+    </noscript>
+
+    <div id="graficos"></div>
+
+    <section class="bloco" id="quem">
+      <h2>Quem são</h2>
+      <div id="nomes"><p class="vazio">Escolha um estado para ver os nomes, em ordem alfabética.</p></div>
+    </section>
+
+    <p class="fonte">
+      Fonte: <a href={fonte}>TSE, candidatos de {ano}</a>. Escolaridade, bens e demais informações
+      são declaradas pelo próprio candidato. Os números mudam enquanto o TSE atualiza o registro
+      das candidaturas.
+    </p>
+  </article>
+</Base>
+
+<script is:inline type="application/json" id="dados-painel" set:html={JSON.stringify(dados)}></script>
+
+<script is:inline>
+(function () {
+  var dados = JSON.parse(document.getElementById("dados-painel").textContent);
+  var L = dados.listas;
+  var form = document.getElementById("filtros");
+  var graficos = document.getElementById("graficos");
+  var nomes = document.getElementById("nomes");
+  var fmt = new Intl.NumberFormat("pt-BR");
+  var pct = new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1 });
+  // Colunas de cada linha: cargo, uf, partido, escolaridade, bens, situação, disputou antes, quantidade.
+  var COL = { cargo: 0, uf: 1, partido: 2, escolaridade: 3, bens: 4, situacao: 5, disputou: 6 };
+  var BLOCOS = [
+    { dim: "escolaridade", titulo: "Escolaridade declarada" },
+    { dim: "partido", titulo: "Partido", ordenavel: true, oculto: "partido" },
+    { dim: "cargo", titulo: "Cargo", oculto: "cargo" },
+    { dim: "uf", titulo: "Estado", ordenavel: true, oculto: "uf" },
+    { dim: "bens", titulo: "Total de bens declarados", nota: "Soma dos valores que o próprio candidato declarou ao TSE." },
+    { dim: "situacao", titulo: "Situação da candidatura", nota: "Inapta: a candidatura não seguiu na disputa (por exemplo, por indeferimento ou renúncia)." },
+    { dim: "disputou", titulo: "Eleições anteriores", nota: "Se a mesma pessoa aparece como candidata em outra eleição desde 2014." },
+  ];
+  var ordem = {}; // dimensão -> "padrao" | "quantidade"
+  var listaUf = {}; // sigla -> linhas carregadas
+  var limiteNomes = 50;
+
+  form.hidden = false;
+
+  function filtros() {
+    var f = {};
+    ["cargo", "uf", "partido"].forEach(function (k) {
+      var v = form.elements[k].value;
+      if (v !== "") f[k] = Number(v);
+    });
+    return f;
+  }
+
+  function passa(valores, f, deslocamento) {
+    for (var k in f) if (valores[COL[k] + deslocamento] !== f[k]) return false;
+    return true;
+  }
+
+  function escapar(t) {
+    return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
+  }
+
+  function desenhar() {
+    var f = filtros();
+    var somas = {};
+    var total = 0;
+    Object.keys(COL).forEach(function (k) { somas[k] = {}; });
+    dados.linhas.forEach(function (l) {
+      if (!passa(l, f, 0)) return;
+      var n = l[7];
+      total += n;
+      for (var k in COL) somas[k][l[COL[k]]] = (somas[k][l[COL[k]]] || 0) + n;
+    });
+    document.getElementById("total").textContent = fmt.format(total);
+    document.getElementById("total-texto").textContent = total === 1 ? "candidatura registrada" : "candidaturas registradas";
+
+    var html = "";
+    BLOCOS.forEach(function (b) {
+      if (b.oculto && f[b.oculto] !== undefined) return;
+      var itens = Object.keys(somas[b.dim]).map(function (i) { return { i: Number(i), n: somas[b.dim][i] }; });
+      if (ordem[b.dim] === "quantidade") itens.sort(function (a, c) { return c.n - a.n || a.i - c.i; });
+      else itens.sort(function (a, c) { return a.i - c.i; });
+      var maior = Math.max.apply(null, itens.map(function (x) { return x.n; }).concat([1]));
+      html += '<section class="bloco"><div class="bloco-topo"><h2>' + b.titulo + "</h2>";
+      if (b.ordenavel) {
+        html += '<label class="ordem">Ordem <select data-ordem="' + b.dim + '">' +
+          '<option value="padrao"' + (ordem[b.dim] !== "quantidade" ? " selected" : "") + ">alfabética</option>" +
+          '<option value="quantidade"' + (ordem[b.dim] === "quantidade" ? " selected" : "") + ">por quantidade</option></select></label>";
+      }
+      html += "</div>";
+      if (b.nota) html += '<p class="nota">' + b.nota + "</p>";
+      html += '<ul class="barras">';
+      itens.forEach(function (x) {
+        var largura = (100 * x.n / maior).toFixed(1);
+        var rotulo = escapar(L[b.dim][x.i]);
+        html += '<li><span class="rotulo">' + rotulo + '</span><span class="trilho"><span class="barra" style="width:' + largura + '%"></span></span>' +
+          '<span class="valor">' + fmt.format(x.n) + "<small>" + pct.format(x.n / total) + "</small></span></li>";
+      });
+      html += "</ul></section>";
+    });
+    graficos.innerHTML = total ? html : '<p class="vazio">Nenhuma candidatura com esses filtros.</p>';
+    desenharNomes(f);
+  }
+
+  function desenharNomes(f) {
+    if (f.uf === undefined) {
+      nomes.innerHTML = '<p class="vazio">Escolha um estado para ver os nomes, em ordem alfabética.</p>';
+      return;
+    }
+    var sigla = L.ufSigla[f.uf];
+    if (!listaUf[sigla]) {
+      nomes.innerHTML = '<p class="nota">Carregando…</p>';
+      fetch(dados.base + "paineis/candidatos/lista-" + sigla.toLowerCase() + ".json")
+        .then(function (r) { return r.json(); })
+        .then(function (lista) { listaUf[sigla] = lista; desenharNomes(filtros()); })
+        .catch(function () { nomes.innerHTML = '<p class="vazio">Não foi possível carregar a lista agora. Tente de novo.</p>'; });
+      return;
+    }
+    // Linha: código, nome, número, depois as mesmas colunas do painel.
+    var lista = listaUf[sigla].filter(function (l) { return passa(l, f, 3); });
+    var html = '<p class="nota">' + fmt.format(lista.length) + (lista.length === 1 ? " candidatura" : " candidaturas") + ", em ordem alfabética.</p><ul class=\"nomes\">";
+    lista.slice(0, limiteNomes).forEach(function (l) {
+      var detalhe = [L.cargo[l[3]], L.partido[l[5]], l[2] ? "número " + l[2] : ""].filter(Boolean).join(" · ");
+      html += '<li><a class="nome" href="' + dados.base + "pessoa/" + l[0] + '/">' + escapar(l[1]) + '</a><span class="detalhe">' + escapar(detalhe) + "</span></li>";
+    });
+    html += "</ul>";
+    if (lista.length > limiteNomes) html += '<button class="botao mais" type="button" id="mais">Mostrar mais nomes</button>';
+    nomes.innerHTML = html;
+    var mais = document.getElementById("mais");
+    if (mais) mais.addEventListener("click", function () { limiteNomes += 200; desenharNomes(filtros()); });
+  }
+
+  form.addEventListener("change", function () { limiteNomes = 50; desenhar(); });
+  form.addEventListener("reset", function () { setTimeout(function () { limiteNomes = 50; desenhar(); }, 0); });
+  graficos.addEventListener("change", function (e) {
+    var dim = e.target.getAttribute("data-ordem");
+    if (dim) {
+      ordem[dim] = e.target.value;
+      desenhar();
+      var volta = graficos.querySelector('[data-ordem="' + dim + '"]');
+      if (volta) volta.focus();
+    }
+  });
+  desenhar();
+})();
+</script>

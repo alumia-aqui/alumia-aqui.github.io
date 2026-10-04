@@ -1,0 +1,54 @@
+---
+import Base from "../../layouts/Base.astro";
+import "../../styles/paineis.css";
+import { caminho } from "../../lib/caminho.js";
+import { painelCandidatos, painelCongresso } from "../../lib/paineis.js";
+
+const { ano, total } = painelCandidatos();
+const congresso = painelCongresso();
+const numero = new Intl.NumberFormat("pt-BR");
+---
+<Base
+  titulo="Painéis - Alumia Aqui"
+  descricao="Visão geral das candidaturas e do Congresso, com filtros por cargo, estado e partido e a fonte de cada número."
+>
+  <article class="conteudo painel-pagina">
+    <h1>Painéis</h1>
+    <p class="apoio">
+      Visão geral com os mesmos dados oficiais dos Retratos. Os grupos aparecem em ordem
+      alfabética; você escolhe se quer outra ordem. Cada painel explica de onde vem cada número.
+    </p>
+
+    <ul class="entradas">
+      <li>
+        <a href={caminho("paineis/candidatos/")}>
+          <span class="titulo">Candidaturas de {ano}</span>
+          <span class="texto">{numero.format(total)} candidaturas por cargo, estado, partido, escolaridade e bens declarados.</span>
+        </a>
+      </li>
+      <li>
+        <a href={caminho("paineis/congresso/")}>
+          <span class="titulo">Congresso Nacional</span>
+          <span class="texto">
+            {congresso ? `${congresso.parlamentares.length} parlamentares em exercício` : "Deputados e senadores em exercício"}:
+            projetos apresentados e gastos da cota parlamentar, por partido e estado.
+          </span>
+        </a>
+      </li>
+    </ul>
+
+    <p class="fonte">Em breve: emendas parlamentares, contratos e obras.</p>
+  </article>
+</Base>
+
+<style>
+  .entradas { list-style: none; margin: 1.5rem 0 0; padding: 0; display: grid; gap: 0.9rem; }
+  .entradas a {
+    display: grid; gap: 0.3rem; padding: 1.1rem 1.2rem;
+    border: 2px solid var(--noite); border-radius: var(--raio); text-decoration: none;
+    background: #fff;
+  }
+  .entradas a:hover { background: rgb(255 226 122 / 0.35); }
+  .titulo { font-weight: 700; font-size: 1.25rem; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .texto { color: var(--tinta-suave); }
+</style>

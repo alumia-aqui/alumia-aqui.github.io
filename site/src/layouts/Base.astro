@@ -17,6 +17,7 @@ const {
   imagem,
 } = Astro.props;
 
+const emPaineis = Astro.url.pathname.includes("/paineis/");
 const emComoFunciona = Astro.url.pathname.endsWith("/como-funciona/");
 
 // Data da geração do site, no horário de Brasília.
@@ -56,6 +57,7 @@ const atualizado = new Intl.DateTimeFormat("pt-BR", {
         </a>
         <nav class="menu" aria-label="Menu principal">
           <a href={caminho()}>Buscar</a>
+          <a href={caminho("paineis/")} aria-current={emPaineis ? "page" : undefined}>Painéis</a>
           <a href={caminho("como-funciona/")} aria-current={emComoFunciona ? "page" : undefined}>Como funciona</a>
         </nav>
       </header>
