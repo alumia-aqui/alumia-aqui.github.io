@@ -20,7 +20,7 @@ Saída: pipeline/saida/congresso.json
 """
 
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date
 
 import gerar_parlamento as gp
@@ -30,6 +30,7 @@ LEGISLATURA = max(gp.LEGISLATURAS)
 INICIO, _ = gp.LEGISLATURAS[LEGISLATURA]
 DATA_INICIO = f"{INICIO}-02-01"
 ANOS = range(INICIO, gp.ANO_ATUAL + 1)
+SITUACOES_SENADO: Counter = Counter()  # para conferência no registro da execução
 
 
 def deputados() -> dict[str, dict]:
@@ -92,9 +93,17 @@ def retratos_senado(sen: dict[str, dict], pessoas: list[dict]) -> dict[str, str]
     return ligados
 
 
-def projetos_camara(dep: dict[str, dict]) -> dict[str, int]:
-    """Projetos com autoria principal, apresentados desde o início da legislatura."""
+def virou_lei(situacao: str | None) -> bool:
+    """Situação final de proposição transformada em lei ou emenda constitucional."""
+    texto = gp.normalizar(situacao)
+    return "TRANSFORMAD" in texto and "NORMA" in texto
+
+
+def projetos_camara(dep: dict[str, dict]) -> tuple[dict[str, int], dict[str, int]]:
+    """Projetos com autoria principal, apresentados desde o início da legislatura,
+    e quantos deles viraram norma jurídica (lei ou emenda constitucional)."""
     contagem: dict[str, int] = defaultdict(int)
+    leis: dict[str, int] = defaultdict(int)
     for ano in ANOS:
         autores = gp.arquivo(
             f"{gp.CAMARA}/arquivos/proposicoesAutores/csv/proposicoesAutores-{ano}.csv",
@@ -107,18 +116,21 @@ def projetos_camara(dep: dict[str, dict]) -> dict[str, int]:
         if autores is None or proposicoes is None:
             continue
         validas = {
-            linha["id"] for linha in gp.ler_csv(proposicoes)
+            linha["id"]: virou_lei(linha["ultimoStatus_descricaoSituacao"])
+            for linha in gp.ler_csv(proposicoes)
             if linha["siglaTipo"] in gp.TIPOS and linha["dataApresentacao"][:10] >= DATA_INICIO
         }
         for linha in gp.ler_csv(autores):
             if (linha["idProposicao"] in validas and linha["ordemAssinatura"] == "1"
                     and linha["idDeputadoAutor"] in dep):
                 contagem[linha["idDeputadoAutor"]] += 1
-    return contagem
+                leis[linha["idDeputadoAutor"]] += validas[linha["idProposicao"]]
+    return contagem, leis
 
 
-def projetos_senado(sen: dict[str, dict]) -> tuple[dict[str, int], list[str]]:
+def projetos_senado(sen: dict[str, dict]) -> tuple[dict[str, int], dict[str, int], list[str]]:
     contagem: dict[str, int] = defaultdict(int)
+    leis: dict[str, int] = defaultdict(int)
     falhas = []
     for codigo, s in sen.items():
         nome = gp.normalizar(s["nome"])
@@ -136,7 +148,9 @@ def projetos_senado(sen: dict[str, dict]) -> tuple[dict[str, int], list[str]]:
                 if primeiro.endswith(nome) and m.get("codigoMateria") not in vistas:
                     vistas.add(m.get("codigoMateria"))
                     contagem[codigo] += 1
-    return contagem, falhas
+                    leis[codigo] += virou_lei(m.get("situacaoAtual"))
+                    SITUACOES_SENADO[m.get("situacaoAtual")] += 1
+    return contagem, leis, falhas
 
 
 def cota(dep: dict[str, dict], sen: dict[str, dict]) -> dict[tuple[str, str], dict[int, float]]:
@@ -173,9 +187,13 @@ def main() -> None:
     retrato |= {("Senado", s): p for s, p in retratos_senado(sen, pessoas).items()}
     print(f"Com Retrato (candidatos agora): {len(retrato)}")
 
-    projetos = {("Câmara", d): n for d, n in projetos_camara(dep).items()}
-    contagem_senado, falhas = projetos_senado(sen)
+    contagem_camara, leis_camara = projetos_camara(dep)
+    contagem_senado, leis_senado, falhas = projetos_senado(sen)
+    projetos = {("Câmara", d): n for d, n in contagem_camara.items()}
     projetos |= {("Senado", s): n for s, n in contagem_senado.items()}
+    leis = {("Câmara", d): n for d, n in leis_camara.items()}
+    leis |= {("Senado", s): n for s, n in leis_senado.items()}
+    print("Situações mais comuns no Senado:", SITUACOES_SENADO.most_common(12))
     if falhas:
         print(f"{len(falhas)} consultas de proposições do Senado falharam, por exemplo: {falhas[:3]}")
     gastos = cota(dep, sen)
@@ -193,6 +211,7 @@ def main() -> None:
                 "url": p["url"],
                 "retrato": retrato.get(chave_p),
                 "projetos": projetos.get(chave_p, 0),
+                "leis": leis.get(chave_p, 0),
                 "cota": {str(ano): round(gastos[chave_p].get(ano, 0), 2) for ano in ANOS},
             })
     parlamentares.sort(key=lambda p: gp.normalizar(p["nome"]))
@@ -207,7 +226,7 @@ def main() -> None:
     destino.write_text(json.dumps(saida, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     sem_cota = sum(1 for p in parlamentares if not any(p["cota"].values()))
     print(f"Gerado {destino.name}: {len(parlamentares)} parlamentares, "
-          f"{sum(p['projetos'] for p in parlamentares)} projetos, {sem_cota} sem gasto de cota registrado")
+          f"{sum(p['projetos'] for p in parlamentares)} projetos ({sum(p['leis'] for p in parlamentares)} viraram norma), {sem_cota} sem gasto de cota registrado")
 
 
 if __name__ == "__main__":
