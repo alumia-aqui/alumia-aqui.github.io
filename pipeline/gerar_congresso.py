@@ -223,6 +223,7 @@ def main() -> None:
         "parlamentares": parlamentares,
     }
     destino = PASTA_SAIDA / "congresso.json"
+    destino.parent.mkdir(parents=True, exist_ok=True)
     destino.write_text(json.dumps(saida, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     sem_cota = sum(1 for p in parlamentares if not any(p["cota"].values()))
     print(f"Gerado {destino.name}: {len(parlamentares)} parlamentares, "
