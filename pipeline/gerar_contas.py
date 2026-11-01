@@ -19,6 +19,7 @@ import csv
 import io
 import json
 import sys
+import unicodedata
 import zipfile
 from collections import defaultdict
 from pathlib import Path
@@ -30,11 +31,10 @@ URL = ("https://cdn.tse.jus.br/estatistica/sead/odsele/prestacao_contas/"
        "prestacao_de_contas_eleitorais_candidatos_{ano}.zip")
 FONTE = "https://dadosabertos.tse.jus.br/dataset/prestacao-de-contas-eleitorais-{ano}"
 # Fontes que são dinheiro público, pelo nome que o TSE usa.
-# O TSE escreve o nome da fonte ora em maiúsculas, ora não.
-FUNDOS = {
-    "FUNDO ESPECIAL DE FINANCIAMENTO DE CAMPANHA": "Fundo Eleitoral",
-    "FUNDO PARTIDÁRIO": "Fundo Partidário",
-}
+# Dinheiro público. O TSE escreve o nome da fonte de formas diferentes
+# ("FUNDO ESPECIAL", "Fundo Especial de Financiamento de Campanha"), então a
+# comparação é feita pelo começo do nome, sem acento e em maiúsculas.
+FUNDOS = (("FUNDO ESPECIAL", "Fundo Eleitoral"), ("FUNDO PARTID", "Fundo Partidário"))
 CATEGORIAS = 6  # categorias mostradas antes de juntar o resto em "Outros"
 
 
@@ -49,6 +49,16 @@ def ler(caminho: Path, prefixo: str, ano: int):
         with z.open(nome) as bruto:
             texto = io.TextIOWrapper(bruto, encoding="latin-1", newline="")
             yield from csv.DictReader(texto, delimiter=";")
+
+
+def fundo_publico(texto: str | None) -> str | None:
+    """Nome do fundo público, quando a receita vem de um deles."""
+    sem_acento = unicodedata.normalize("NFKD", (texto or "").strip().upper())
+    sem_acento = "".join(c for c in sem_acento if not unicodedata.combining(c))
+    for comeco, nome in FUNDOS:
+        if sem_acento.startswith(comeco):
+            return nome
+    return None
 
 
 def como_data(texto: str) -> tuple:
@@ -106,7 +116,7 @@ def coletar(caminho: Path, ano: int) -> dict[str, dict]:
         conta = contas[sq]
         conta["receitas"] += valor
         conta["por_origem"][arrumar(linha.get("DS_ORIGEM_RECEITA"))] += valor
-        fundo = FUNDOS.get((tse.limpar(linha.get("DS_FONTE_RECEITA")) or "").strip().upper())
+        fundo = fundo_publico(linha.get("DS_FONTE_RECEITA"))
         if fundo:
             conta["fundos"][fundo] += valor
         conta["prestacao"] = maior_prestacao(
