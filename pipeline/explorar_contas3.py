@@ -18,7 +18,6 @@ import tse
 ODS = "https://cdn.tse.jus.br/estatistica/sead/odsele"
 ALVOS = [
     f"{ODS}/prestacao_contas/prestacao_de_contas_eleitorais_candidatos_2026.zip",
-    f"{ODS}/prestacao_contas/prestacao_de_contas_eleitorais_candidatos_2022.zip",
     f"{ODS}/processual/processo_eleitoral_2026.zip",
     f"{ODS}/processual/processos_eleitorais_partes_2026.zip",
     f"{ODS}/processual/processos_eleitorais_assuntos_2026.zip",
@@ -97,16 +96,33 @@ def ver(url: str) -> None:
             # Colunas com CPF de 11 dígitos: o que permite ligar à pessoa.
             for coluna in colunas:
                 if "CPF" in coluna.upper():
-                    valores = [r[coluna] for r in registros if re.fullmatch(r"\d{11}", (r[coluna] or "").strip())]
+                    valores = [r for r in registros if re.fullmatch(r"\d{11}", (r.get(coluna) or "").strip())]
                     print(f"     {coluna}: {len(valores)} de {len(registros)} linhas com 11 dígitos")
 
             # Distribuição de colunas curtas e informativas.
             for coluna in colunas:
                 if re.search(r"DS_(SITUACAO|JULGAMENTO|TIPO|CLASSE|ASSUNTO|DECISAO|ORIGEM|PARTE|CARGO)|NM_CLASSE|NM_ASSUNTO", coluna, re.I):
-                    contagem = collections.Counter((r[coluna] or "").strip() for r in registros)
+                    contagem = collections.Counter((r.get(coluna) or "").strip() for r in registros)
                     print(f"     {coluna}: {contagem.most_common(8)}")
 
 
+def recursos(pacote: str) -> None:
+    """Todos os arquivos de um conjunto do catálogo, para achar o julgamento das contas."""
+    print(f"\n{'=' * 70}\nCatálogo: {pacote}\n{'=' * 70}")
+    url = f"https://dadosabertos.tse.jus.br/api/3/action/package_show?id={pacote}"
+    pedido = urllib.request.Request(url, headers={"User-Agent": "alumia-aqui"})
+    try:
+        with urllib.request.urlopen(pedido, timeout=60) as resposta:
+            dados = json.loads(resposta.read())
+    except Exception as erro:
+        print(f"  falhou: {erro}")
+        return
+    for recurso in dados["result"]["resources"]:
+        print(f"  {recurso.get('name')}: {recurso.get('url')}")
+
+
 if __name__ == "__main__":
+    for pacote in ("prestacao-de-contas-eleitorais-2026", "prestacao-de-contas-eleitorais-2022"):
+        recursos(pacote)
     for url in ALVOS:
         ver(url)
