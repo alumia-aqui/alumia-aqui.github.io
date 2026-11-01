@@ -121,6 +121,11 @@ const resumo = [
   },
 ].filter(Boolean);
 
+// Endereço da página, impresso no papel para quem quiser conferir depois.
+const enderecoPagina = Astro.site
+  ? new URL(caminho(`pessoa/${pessoa.id}/`), Astro.site).href.replace(/^https?:\/\//, "")
+  : null;
+
 const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${ano}`;
 ---
 <Base
@@ -160,9 +165,17 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
       Não fazemos avaliação de candidatos.
     </p>
 
+    {enderecoPagina && <p class="so-impressao">Página: {enderecoPagina}</p>}
+
     <nav class="abas" id="abas" aria-label="Partes do Retrato">
       {abas.map((aba) => <a href={`#${aba.id}`}>{aba.titulo}</a>)}
+      <a class="aba-tudo" href="#tudo">Ver tudo</a>
     </nav>
+
+    <p class="acoes" id="acoes" hidden>
+      Todas as partes do Retrato, uma embaixo da outra.
+      <button class="botao-imprimir" type="button" id="imprimir">Imprimir ou salvar em PDF</button>
+    </p>
 
     <div class="painel" id="resumo">
       <ul class="resumo">
@@ -572,28 +585,59 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
 
 <script is:inline>
   // Abas: mostra um painel por vez. O endereço (#sancoes, #bens...) diz qual.
+  // Em #tudo, todos os painéis aparecem juntos, como numa folha só.
   (function () {
     var paineis = Array.prototype.slice.call(document.querySelectorAll(".painel"));
     var links = Array.prototype.slice.call(document.querySelectorAll(".abas a"));
     var nav = document.getElementById("abas");
+    var acoes = document.getElementById("acoes");
     if (!paineis.length || !nav) return;
+
+    // "O que ainda não está aqui" fecha a página quando tudo aparece junto.
+    var falta = document.getElementById("falta");
+    var paiDoFalta = falta && falta.parentNode;
+    var depoisDoFalta = falta && falta.nextSibling;
+    var fimDaPagina = document.querySelector(".retrato");
+
+    function tudoJunto(ligado) {
+      document.documentElement.classList.toggle("ver-tudo", ligado);
+      if (acoes) acoes.hidden = !ligado;
+      if (!falta || !fimDaPagina) return;
+      if (ligado) fimDaPagina.appendChild(falta);
+      else paiDoFalta.insertBefore(falta, depoisDoFalta);
+    }
+
     function mostrar(rolar) {
       var id = decodeURIComponent(location.hash.slice(1));
-      var alvo = id && document.getElementById(id);
+      var tudo = id === "tudo";
+      tudoJunto(tudo);
+      var alvo = !tudo && id && document.getElementById(id);
       var painel = alvo && (alvo.classList.contains("painel") ? alvo : alvo.closest(".painel"));
       var ativo = painel || paineis[0];
-      paineis.forEach(function (p) { p.hidden = p !== ativo; });
+      paineis.forEach(function (p) { p.hidden = !tudo && p !== ativo; });
       links.forEach(function (a) {
-        if (a.hash === "#" + ativo.id) a.setAttribute("aria-current", "page");
+        var atual = tudo ? a.hash === "#tudo" : a.hash === "#" + ativo.id;
+        if (atual) a.setAttribute("aria-current", "page");
         else a.removeAttribute("aria-current");
       });
       if (!rolar) return;
-      if (alvo && alvo !== ativo) alvo.scrollIntoView();
+      if (tudo) nav.scrollIntoView();
+      else if (alvo && alvo !== ativo) alvo.scrollIntoView();
       else if (alvo) nav.scrollIntoView();
     }
+
     document.documentElement.classList.add("com-abas");
     mostrar(Boolean(location.hash));
     window.addEventListener("hashchange", function () { mostrar(true); });
+
+    var imprimir = document.getElementById("imprimir");
+    if (imprimir) imprimir.addEventListener("click", function () { window.print(); });
+
+    // Imprimir sempre leva a página inteira, mesmo com uma aba aberta.
+    window.addEventListener("beforeprint", function () {
+      paineis.forEach(function (p) { p.hidden = false; });
+    });
+    window.addEventListener("afterprint", function () { mostrar(false); });
   })();
 </script>
 
@@ -693,6 +737,36 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
 
   /* Sem JavaScript, todos os painéis aparecem empilhados. */
   .painel[hidden] { display: none; }
+
+  .aba-tudo { border-style: dashed; }
+  .acoes {
+    margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem;
+    align-items: center; color: var(--tinta-suave); font-size: 0.95rem;
+  }
+  .botao-imprimir {
+    font: inherit; font-weight: 700; color: var(--noite);
+    padding: 0.5rem 1rem; min-height: 2.75rem;
+    border: 2px solid var(--noite); border-radius: 999px; background: transparent;
+    cursor: pointer;
+  }
+  .acoes[hidden] { display: none; }
+  .botao-imprimir:hover { background: rgb(255 226 122 / 0.45); }
+  /* Com tudo junto, cada parte começa com uma linha separando. */
+  :global(html.ver-tudo) .painel + .painel { border-top: 2px solid var(--borda); margin-top: 2.5rem; }
+
+  .so-impressao { display: none; }
+
+  @media print {
+    .abas, .acoes, .aviso-fontes { display: none; }
+    .painel[hidden] { display: block; }
+    .painel + .painel { border-top: 2px solid #ccc; margin-top: 1.5rem; padding-top: 0.5rem; }
+    .resumo { display: none; }
+    .so-impressao { display: block; margin-top: 0.75rem; font-size: 0.9rem; }
+    section { margin-top: 1.25rem; }
+    h1, h2, h3 { break-after: avoid; }
+    .ficha div, .linha-do-tempo li, .presencas li, .lista-bens li, .registro { break-inside: avoid; }
+    .foto { box-shadow: none; }
+  }
   .alerta-empresa {
     margin-top: 0.6rem; padding: 0.6rem 0.8rem;
     background: var(--luz); border-radius: 10px;
