@@ -84,6 +84,11 @@ jobs:
           ALUMIA_CHAVE: ${{ secrets.ALUMIA_CHAVE }}
         run: python pipeline/gerar_parlamento.py
 
+      # Contas de campanha da eleição atual (receitas e despesas no TSE).
+      - name: Juntar contas de campanha
+        continue-on-error: true
+        run: python pipeline/gerar_contas.py
+
       # Painel do Congresso: todos os parlamentares em exercício, candidatos ou não.
       - name: Gerar painel do Congresso
         continue-on-error: true

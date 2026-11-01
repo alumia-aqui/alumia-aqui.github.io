@@ -27,6 +27,7 @@ Pré-requisitos: Python 3.14 e Node.js 24.
 
 - **Gerar os dados:** `python pipeline/gerar_pessoas.py`. Baixa os arquivos do TSE e gera um JSON por pessoa em pipeline/saida/. Na primeira vez cria a chave em .env, que precisa ser guardada.
 - **Gerar as fotos:** `pip install pillow` uma vez, depois `python pipeline/gerar_fotos.py`. Opcional: sem fotos, o site funciona normalmente.
+- **Contas de campanha:** `python pipeline/gerar_contas.py`, depois de gerar_pessoas.py. Baixa a prestação de contas eleitorais do TSE (236 MB na eleição de 2026) e junta a cada Retrato receitas por origem, quanto veio de fundo público, despesas contratadas e pagas e os tipos de gasto. A ligação é pelo SQ_CANDIDATO; o TSE não publica mais o CPF nesses arquivos.
 - **Painel do Congresso:** `python pipeline/gerar_congresso.py`, depois de gerar_parlamento.py. Gera pipeline/saida/congresso.json com todos os deputados e senadores em exercício, candidatos ou não: partido atual, UF, projetos apresentados na legislatura atual, quantos viraram norma e gasto da cota por ano.
 - **Empresas (mensal, no computador local):** `powershell -ExecutionPolicy Bypass -File ferramentas\atualizar_empresas.ps1`. Baixa os dados de sócios da Receita Federal, que recusa conexões vindas do GitHub, gera dados/empresas.json e envia ao repositório. Os arquivos da Receita somam alguns GB; só o mês atual fica guardado.
 - **Agendar as empresas:** no PowerShell, dentro da pasta do repositório, rodar uma vez `powershell -ExecutionPolicy Bypass -File ferramentas\agendar_empresas.ps1`. Cria a tarefa semanal "Alumia Aqui - empresas" (domingo, 20h; se o computador estiver desligado, roda quando ligar). A Receita publica uma vez por mês: nas outras semanas o script não baixa nada nem envia mudanças. Registro da última execução: ferramentas/ultima_execucao_empresas.log. Pra conferir se a tarefa existe: Agendador de Tarefas do Windows → Biblioteca do Agendador de Tarefas (raiz) → "Alumia Aqui - empresas". A tarefa não sobrevive a uma formatação ou troca de computador; depois de uma reinstalação do Windows, rodar `agendar_empresas.ps1` de novo pra recriá-la.
@@ -45,9 +46,11 @@ Pré-requisitos: Python 3.14 e Node.js 24.
 
 ## 4 - Fontes de dados
 
-Em uso: TSE (candidaturas, bens, fotos), Câmara e Senado (mandatos, proposições, cota, página do deputado), CGU (CEIS, CNEP, CEAF) e Receita Federal (sócios de empresas).
+Em uso: TSE (candidaturas, bens, fotos, contas de campanha), Câmara e Senado (mandatos, proposições, cota, página do deputado), CGU (CEIS, CNEP, CEAF) e Receita Federal (sócios de empresas).
 
-Próximas do TSE: certidões e contas de campanha.
+Próximas do TSE: processos da Justiça Eleitoral (conjunto Processual: partes, assuntos e decisões, ligáveis por SQ_CANDIDATO).
+
+Fora de alcance por enquanto: processos criminais comuns. O CNJ (DataJud) publica os processos sem o nome das partes, e as listas que trazem nome não trazem CPF, o que não atende à regra de identidade confirmada. As certidões criminais entregues ao TSE são PDFs no DivulgaCandContas, que recusa acesso automatizado (403).
 
 Previstas: PNCP, Obrasgov e emendas parlamentares (Portal da Transparência).
 

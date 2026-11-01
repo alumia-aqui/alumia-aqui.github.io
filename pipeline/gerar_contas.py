@@ -30,9 +30,10 @@ URL = ("https://cdn.tse.jus.br/estatistica/sead/odsele/prestacao_contas/"
        "prestacao_de_contas_eleitorais_candidatos_{ano}.zip")
 FONTE = "https://dadosabertos.tse.jus.br/dataset/prestacao-de-contas-eleitorais-{ano}"
 # Fontes que são dinheiro público, pelo nome que o TSE usa.
+# O TSE escreve o nome da fonte ora em maiúsculas, ora não.
 FUNDOS = {
-    "Fundo Especial de Financiamento de Campanha": "Fundo Eleitoral",
-    "Fundo Partidário": "Fundo Partidário",
+    "FUNDO ESPECIAL DE FINANCIAMENTO DE CAMPANHA": "Fundo Eleitoral",
+    "FUNDO PARTIDÁRIO": "Fundo Partidário",
 }
 CATEGORIAS = 6  # categorias mostradas antes de juntar o resto em "Outros"
 
@@ -105,7 +106,7 @@ def coletar(caminho: Path, ano: int) -> dict[str, dict]:
         conta = contas[sq]
         conta["receitas"] += valor
         conta["por_origem"][arrumar(linha.get("DS_ORIGEM_RECEITA"))] += valor
-        fundo = FUNDOS.get((tse.limpar(linha.get("DS_FONTE_RECEITA")) or "").strip())
+        fundo = FUNDOS.get((tse.limpar(linha.get("DS_FONTE_RECEITA")) or "").strip().upper())
         if fundo:
             conta["fundos"][fundo] += valor
         conta["prestacao"] = maior_prestacao(
