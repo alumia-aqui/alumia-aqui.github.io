@@ -88,10 +88,20 @@ const referenciaReceita = (r) => (r ? `${r.slice(5, 7)}/${r.slice(0, 4)}` : "");
 
 const anteriores = [...new Set(pessoa.candidaturas.map((c) => c.ano))].sort((a, b) => b - a);
 
+// Contas de campanha da eleição atual (gerar_contas.py).
+const campanha = pessoa.campanha;
+const receitaPorOrigem = campanha?.receitas.por_origem ?? [];
+const despesaPorTipo = campanha?.despesas.por_tipo ?? [];
+const maiorOrigem = Math.max(1, ...receitaPorOrigem.map((o) => o.valor));
+const maiorTipo = Math.max(1, ...despesaPorTipo.map((t) => t.valor));
+const totalFundos = (campanha?.receitas.fundos ?? []).reduce((soma, f) => soma + f.valor, 0);
+const prestacaoFinal = (campanha?.prestacao?.tipo ?? "").toLowerCase().startsWith("final");
+
 // Abas do Retrato. Sanções e Empresas aparecem para todos, mesmo vazias.
 const abas = [
   { id: "resumo", titulo: "Resumo" },
   { id: "candidaturas", titulo: "Candidaturas" },
+  campanha && { id: "campanha", titulo: "Campanha" },
   parlamento && { id: "mandatos", titulo: "Mandatos" },
   sancoes && { id: "sancoes", titulo: "Sanções" },
   empresas && { id: "empresas", titulo: "Empresas" },
@@ -107,6 +117,12 @@ const resumo = [
   bensAtuais && {
     alvo: "bens", rotulo: "Bens declarados",
     texto: bensAtuais.total_bens > 0 ? `${reais(bensAtuais.total_bens)} em ${bensAtuais.ano}` : `Nenhum bem declarado em ${bensAtuais.ano}`,
+  },
+  campanha && {
+    alvo: "campanha", rotulo: `Campanha de ${campanha.ano}`,
+    texto: campanha.receitas.total > 0
+      ? `${reais(campanha.receitas.total)} arrecadados`
+      : "Nenhuma receita declarada até agora",
   },
   parlamento && { alvo: "mandatos", rotulo: "Mandatos no Congresso", texto: `${plural(parlamento.mandatos.length, "mandato", "mandatos")} desde ${parlamento.desde}` },
   sancoes && {
@@ -125,6 +141,20 @@ const resumo = [
 const enderecoPagina = Astro.site
   ? new URL(caminho(`pessoa/${pessoa.id}/`), Astro.site).href.replace(/^https?:\/\//, "")
   : null;
+
+// O que ainda não entrou no Retrato desta pessoa.
+const faltando = (() => {
+  const itens = [
+    !campanha && "Contas de campanha",
+    "processos criminais",
+    "votações no Congresso",
+    "presença de senadores e de deputados em mandatos anteriores",
+    "mandatos anteriores a 2015",
+    "mandatos em assembleias estaduais e câmaras municipais",
+  ].filter(Boolean);
+  const primeiro = primeiraMaiuscula(itens[0]);
+  return [primeiro, ...itens.slice(1)].join(", ").replace(/, ([^,]*)$/, " e $1");
+})();
 
 const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${ano}`;
 ---
@@ -204,11 +234,8 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
     <section id="falta">
       <h2>O que ainda não está aqui</h2>
       <p>
-        Contas de campanha, processos criminais, votações no Congresso,
-        presença de senadores e de deputados em mandatos anteriores, mandatos anteriores a 2015
-        e mandatos em assembleias estaduais e câmaras municipais ainda
-        não foram incluídos no Alumia Aqui. A ausência dessas informações nesta página não
-        significa que elas não existam.
+        {faltando} ainda não foram incluídos no Alumia Aqui. A ausência dessas informações
+        nesta página não significa que elas não existam.
       </p>
     </section>
     </div>
@@ -291,6 +318,77 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
     )}
 
     </div>
+
+    {campanha && (
+      <div class="painel" id="campanha">
+        <section id="campanha-contas">
+          <h2>Quanto arrecadou e gastou na campanha?</h2>
+          <p class="explica">
+            Valores da campanha de {campanha.ano}, como o próprio candidato informou ao TSE.
+            {prestacaoFinal
+              ? " A prestação de contas final já foi entregue"
+              : " O que está publicado ainda é um relatório parcial, entregue durante a campanha"}
+            {campanha.prestacao?.data && ` (${campanha.prestacao.data})`}.
+          </p>
+
+          <p class="total-bens">{reais(campanha.receitas.total)}</p>
+          <p class="explica">Total de receitas declaradas.</p>
+
+          {receitaPorOrigem.length > 0 && (
+            <>
+              <h3 class="sub">De onde veio o dinheiro</h3>
+              <ul class="evolucao categorias">
+                {receitaPorOrigem.map((o) => (
+                  <li>
+                    <span class="rotulo-barra">{o.nome}</span>
+                    <span class="barra" style={`--tamanho: ${(o.valor / maiorOrigem) * 100}%`}></span>
+                    <span class="valor">{reais(o.valor)}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {totalFundos > 0 && (
+            <p class="explica">
+              Desse total, {reais(totalFundos)} vieram de fundos públicos
+              ({campanha.receitas.fundos.map((f, i) => (<>{i > 0 && ", "}{f.nome}: {reais(f.valor)}</>))}).
+            </p>
+          )}
+
+          <h3 class="sub">Quanto gastou</h3>
+          <ul class="bens">
+            <li><span>Despesas contratadas</span><span class="valor">{reais(campanha.despesas.contratadas)}</span></li>
+            <li><span>Despesas já pagas</span><span class="valor">{reais(campanha.despesas.pagas)}</span></li>
+          </ul>
+
+          {despesaPorTipo.length > 0 && (
+            <>
+              <h3 class="sub">Em que gastou</h3>
+              <ul class="evolucao categorias">
+                {despesaPorTipo.map((t) => (
+                  <li>
+                    <span class="rotulo-barra">{t.nome}</span>
+                    <span class="barra" style={`--tamanho: ${(t.valor / maiorTipo) * 100}%`}></span>
+                    <span class="valor">{reais(t.valor)}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          <p class="explica">
+            A Justiça Eleitoral ainda vai julgar estas contas. O julgamento não aparece aqui.
+          </p>
+
+          <p class="fonte">
+            Fonte: <a href={campanha.fonte}>TSE, prestação de contas eleitorais de {campanha.ano}</a>.
+            {campanha.atualizado_em && ` Dados publicados pelo TSE em ${campanha.atualizado_em}.`}
+            {" "}Valores informados pelo próprio candidato e ainda sujeitos a correção.
+          </p>
+        </section>
+      </div>
+    )}
 
     {parlamento && (
       <div class="painel" id="mandatos">
@@ -738,6 +836,7 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
   /* Sem JavaScript, todos os painéis aparecem empilhados. */
   .painel[hidden] { display: none; }
 
+  .rotulo-barra { font-size: 0.95rem; }
   .aba-tudo { border-style: dashed; }
   .acoes {
     margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem;
@@ -791,6 +890,11 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
     align-items: center; padding: 0.3rem 0;
   }
   .ano-bens { font-weight: 700; }
+  .evolucao.categorias li { grid-template-columns: minmax(8rem, 15rem) 1fr auto; }
+  @media (max-width: 34rem) {
+    .evolucao.categorias li { grid-template-columns: 1fr auto; }
+    .evolucao.categorias .barra { grid-column: 1 / -1; grid-row: 2; }
+  }
   .barra { height: 0.9rem; border-radius: 0 6px 6px 0; background: var(--borda); position: relative; }
   .barra::after {
     content: ""; position: absolute; inset: 0 auto 0 0; width: var(--tamanho);
