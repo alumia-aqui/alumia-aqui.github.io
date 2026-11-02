@@ -331,8 +331,14 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
             {campanha.prestacao?.data && ` (${campanha.prestacao.data})`}.
           </p>
 
-          <p class="total-bens">{reais(campanha.receitas.total)}</p>
-          <p class="explica">Total de receitas declaradas.</p>
+          {campanha.receitas.total > 0 ? (
+            <>
+              <p class="total-bens">{reais(campanha.receitas.total)}</p>
+              <p class="explica">Total de receitas declaradas.</p>
+            </>
+          ) : (
+            <p>Nenhuma receita declarada até agora.</p>
+          )}
 
           {receitaPorOrigem.length > 0 && (
             <>
@@ -357,6 +363,9 @@ const fonteTse = (ano) => `https://dadosabertos.tse.jus.br/dataset/candidatos-${
           )}
 
           <h3 class="sub">Quanto gastou</h3>
+          {campanha.despesas.contratadas === 0 && campanha.despesas.pagas === 0 && (
+            <p>Nenhuma despesa declarada até agora.</p>
+          )}
           <ul class="bens">
             <li><span>Despesas contratadas</span><span class="valor">{reais(campanha.despesas.contratadas)}</span></li>
             <li><span>Despesas já pagas</span><span class="valor">{reais(campanha.despesas.pagas)}</span></li>
