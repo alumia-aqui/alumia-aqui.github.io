@@ -1,0 +1,70 @@
+2026: 20874 pessoas (3 registros sem CPF ficaram de fora)
+2024: 7926 pessoas com candidatura nesse ano (7926 ligadas pelo título de eleitor)
+2022: 6393 pessoas com candidatura nesse ano - 2 registros com mesmo CPF e título diferente
+2020: 6396 pessoas com candidatura nesse ano - 4 registros com mesmo CPF e título diferente
+2018: 3921 pessoas com candidatura nesse ano - 3 registros com mesmo CPF e título diferente
+2016: 4574 pessoas com candidatura nesse ano - 7 registros com mesmo CPF e título diferente
+2014: 2550 pessoas com candidatura nesse ano (8 ligadas pelo título de eleitor) - 4 registros com mesmo CPF e título diferente
+Bens 2026: 13915 candidaturas com bens declarados
+Bens 2024: 5498 candidaturas com bens declarados
+Bens 2022: 4797 candidaturas com bens declarados
+Bens 2020: 4527 candidaturas com bens declarados
+Bens 2018: 3051 candidaturas com bens declarados
+Bens 2016: 3426 candidaturas com bens declarados
+Bens 2014: 2022 candidaturas com bens declarados
+Registros repetidos no TSE unidos: 107
+
+Arquivos gerados em /home/runner/work/alumia-aqui.github.io/alumia-aqui.github.io/pipeline/saida
+  20874 pessoas, 13998 com candidaturas em eleições anteriores
+  20963 candidaturas de 2026 no índice de busca
+Contas de campanha de 2026
+Baixando https://cdn.tse.jus.br/estatistica/sead/odsele/prestacao_contas/prestacao_de_contas_eleitorais_candidatos_2026.zip
+  0% de 236.2 MB  1% de 236.2 MB  1% de 236.2 MB  2% de 236.2 MB  2% de 236.2 MB  3% de 236.2 MB  3% de 236.2 MB  4% de 236.2 MB  4% de 236.2 MB  4% de 236.2 MB  5% de 236.2 MB  5% de 236.2 MB  6% de 236.2 MB  6% de 236.2 MB  7% de 236.2 MB  7% de 236.2 MB  8% de 236.2 MB  8% de 236.2 MB  8% de 236.2 MB  9% de 236.2 MB  9% de 236.2 MB  10% de 236.2 MB  10% de 236.2 MB  11% de 236.2 MB  11% de 236.2 MB  12% de 236.2 MB  12% de 236.2 MB  12% de 236.2 MB  13% de 236.2 MB  13% de 236.2 MB  14% de 236.2 MB  14% de 236.2 MB  15% de 236.2 MB  15% de 236.2 MB  16% de 236.2 MB  16% de 236.2 MB  16% de 236.2 MB  17% de 236.2 MB  17% de 236.2 MB  18% de 236.2 MB  18% de 236.2 MB  19% de 236.2 MB  19% de 236.2 MB  20% de 236.2 MB  20% de 236.2 MB  20% de 236.2 MB  21% de 236.2 MB  21% de 236.2 MB  22% de 236.2 MB  22% de 236.2 MB  23% de 236.2 MB  23% de 236.2 MB  24% de 236.2 MB  24% de 236.2 MB  24% de 236.2 MB  25% de 236.2 MB  25% de 236.2 MB  26% de 236.2 MB  26% de 236.2 MB  27% de 236.2 MB  27% de 236.2 MB  28% de 236.2 MB  28% de 236.2 MB  28% de 236.2 MB  29% de 236.2 MB  29% de 236.2 MB  30% de 236.2 MB  30% de 236.2 MB  31% de 236.2 MB  31% de 236.2 MB  32% de 236.2 MB  32% de 236.2 MB  32% de 236.2 MB  33% de 236.2 MB  33% de 236.2 MB  34% de 236.2 MB  34% de 236.2 MB  35% de 236.2 MB  35% de 236.2 MB  36% de 236.2 MB  36% de 236.2 MB  36% de 236.2 MB  37% de 236.2 MB  37% de 236.2 MB  38% de 236.2 MB  38% de 236.2 MB  39% de 236.2 MB  39% de 236.2 MB  40% de 236.2 MB  40% de 236.2 MB  40% de 236.2 MB  41% de 236.2 MB  41% de 236.2 MB  42% de 236.2 MB  42% de 236.2 MB  43% de 236.2 MB  43% de 236.2 MB  44% de 236.2 MB  44% de 236.2 MB  44% de 236.2 MB  45% de 236.2 MB  45% de 236.2 MB  46% de 236.2 MB  46% de 236.2 MB  47% de 236.2 MB  47% de 236.2 MB  48% de 236.2 MB  48% de 236.2 MB  48% de 236.2 MB  49% de 236.2 MB  49% de 236.2 MB  50% de 236.2 MB  50% de 236.2 MB  51% de 236.2 MB  51% de 236.2 MB  51% de 236.2 MB  52% de 236.2 MB  52% de 236.2 MB  53% de 236.2 MB  53% de 236.2 MB  54% de 236.2 MB  54% de 236.2 MB  55% de 236.2 MB  55% de 236.2 MB  55% de 236.2 MB  56% de 236.2 MB  56% de 236.2 MB  57% de 236.2 MB  57% de 236.2 MB  58% de 236.2 MB  58% de 236.2 MB  59% de 236.2 MB  59% de 236.2 MB  59% de 236.2 MB  60% de 236.2 MB  60% de 236.2 MB  61% de 236.2 MB  61% de 236.2 MB  62% de 236.2 MB  62% de 236.2 MB  63% de 236.2 MB  63% de 236.2 MB  63% de 236.2 MB  64% de 236.2 MB  64% de 236.2 MB  65% de 236.2 MB  65% de 236.2 MB  66% de 236.2 MB  66% de 236.2 MB  67% de 236.2 MB  67% de 236.2 MB  67% de 236.2 MB  68% de 236.2 MB  68% de 236.2 MB  69% de 236.2 MB  69% de 236.2 MB  70% de 236.2 MB  70% de 236.2 MB  71% de 236.2 MB  71% de 236.2 MB  71% de 236.2 MB  72% de 236.2 MB  72% de 236.2 MB  73% de 236.2 MB  73% de 236.2 MB  74% de 236.2 MB  74% de 236.2 MB  75% de 236.2 MB  75% de 236.2 MB  75% de 236.2 MB  76% de 236.2 MB  76% de 236.2 MB  77% de 236.2 MB  77% de 236.2 MB  78% de 236.2 MB  78% de 236.2 MB  79% de 236.2 MB  79% de 236.2 MB  79% de 236.2 MB  80% de 236.2 MB  80% de 236.2 MB  81% de 236.2 MB  81% de 236.2 MB  82% de 236.2 MB  82% de 236.2 MB  83% de 236.2 MB  83% de 236.2 MB  83% de 236.2 MB  84% de 236.2 MB  84% de 236.2 MB  85% de 236.2 MB  85% de 236.2 MB  86% de 236.2 MB  86% de 236.2 MB  87% de 236.2 MB  87% de 236.2 MB  87% de 236.2 MB  88% de 236.2 MB  88% de 236.2 MB  89% de 236.2 MB  89% de 236.2 MB  90% de 236.2 MB  90% de 236.2 MB  91% de 236.2 MB  91% de 236.2 MB  91% de 236.2 MB  92% de 236.2 MB  92% de 236.2 MB  93% de 236.2 MB  93% de 236.2 MB  94% de 236.2 MB  94% de 236.2 MB  95% de 236.2 MB  95% de 236.2 MB  95% de 236.2 MB  96% de 236.2 MB  96% de 236.2 MB  97% de 236.2 MB  97% de 236.2 MB  98% de 236.2 MB  98% de 236.2 MB  99% de 236.2 MB  99% de 236.2 MB  99% de 236.2 MB  100% de 236.2 MB  100% de 236.2 MB
+  receitas: 19335 candidaturas
+  despesas: 19335 candidaturas (0 pagamentos sem candidatura correspondente)
+19296 de 20874 pessoas com contas de campanha publicadas
+19296 de 20874 pessoas com contas
+tipo de prestação: [('FINAL', 7273), ('RELATÓRIO FINANCEIRO', 6139), ('PARCIAL', 5884)]
+sem receita declarada: 1987
+
+LUIZ INÁCIO LULA DA SILVA (PRESIDENTE)
+{
+ "ano": 2026,
+ "atualizado_em": "01/11/2026",
+ "prestacao": {
+  "tipo": "RELATÓRIO FINANCEIRO",
+  "data": "30/10/2026"
+ },
+ "receitas": {
+  "total": 128319249.01,
+  "por_origem": [
+   {
+    "nome": "Recursos de partido político",
+    "valor": 124132215.04
+   },
+   {
+    "nome": "Recursos de pessoas físicas",
+    "valor": 2146301.79
+   },
+   {
+    "nome": "Recursos de Financiamento Coletivo",
+    "valor": 2038110.45
+   },
+   {
+    "nome": "Fundo Especial de Financiamento de Campanha",
+    "valor": 2621.73
+   }
+  ],
+  "fundos": [
+   {
+    "nome": "Fundo Eleitoral",
+    "valor": 123781133.56
+   },
+   {
+    "nome": "Fundo Partidário",
+    "valor": 341801.48
+   }
+  ]
+ },
+ "despesas": {
+  "contratadas": 90795566.84,
